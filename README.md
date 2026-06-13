@@ -63,14 +63,10 @@ I keep skills in a few places, but the main collection is **`~/Code/SKILLS/`**
 `~/.claude/skills` — those weren't part of this run). The scanner treats each
 immediate subdirectory containing a `SKILL.md` as one skill.
 
-**10 skills scanned** from `~/Code/SKILLS` (static analysis only, no LLM):
+**6 skills scanned** from `~/Code/SKILLS` (static analysis only, no LLM):
 
 | Skill | Score | Severity | Recommendation | Findings | Breakdown | Scripts |
 |---|---:|---|---|---:|---|:---:|
-| frontend-design-recommender | 100 | CRITICAL | DO NOT INSTALL | 13 | 5 H, 7 M, 1 L | yes |
-| odc-2-artefact | 100 | CRITICAL | DO NOT INSTALL | 12 | 9 H, 1 M, 2 L | yes |
-| odc-canvas | 100 | CRITICAL | DO NOT INSTALL | 38 | 6 H, 20 M, 12 L | yes |
-| wiki-curator | 100 | CRITICAL | DO NOT INSTALL | 13 | 3 H, 9 M, 1 L | yes |
 | create-graph-api | 13 | LOW | SAFE | 1 | 1 M | yes |
 | manage-portfolio | 13 | LOW | SAFE | 1 | 1 M | yes |
 | article-qa | 0 | LOW | SAFE | 0 | — | — |
@@ -78,52 +74,30 @@ immediate subdirectory containing a `SKILL.md` as one skill.
 | tab-newsletter | 0 | LOW | SAFE | 0 | — | yes |
 | web-to-md-js | 0 | LOW | SAFE | 0 | — | — |
 
-_Key: C=Critical, H=High, M=Medium, L=Low. Full table regenerated at_
-[`reports/summary.md`](reports/summary.md).
+_Key: H=High, M=Medium, L=Low. Full per-skill reports in_
+[`reports/`](reports/).
 
 ### Result distribution
 
-```mermaid
-pie showData title Scan result by recommendation (10 skills)
-    "SAFE" : 6
-    "DO NOT INSTALL" : 4
-```
-
-### Most common finding types (78 total)
-
-```mermaid
-xychart-beta
-    title "Findings by category"
-    x-axis ["EA2 Excessive Agency", "TM1 Tool Misuse", "SC1 Supply Chain", "EA3 Scope Creep", "AST4 subprocess", "E1 Exfiltration"]
-    y-axis "Count" 0 --> 22
-    bar [20, 13, 7, 6, 5, 5]
-```
+All 6 skills scored **SAFE** (LOW severity). Only two findings surfaced —
+both **Medium**, flagging `MCP Least Privilege` (an MCP tool granted broader
+scope than the skill needs). Nothing in this set is high-risk under static
+analysis.
 
 ## ⚠️ How to read these results
 
-These are **my own skills**, so the four "CRITICAL / DO NOT INSTALL" verdicts are
-**not** evidence of malware — they're what static analysis flags on real automation
-skills. Worth understanding before trusting the score:
+These are **my own skills**, so even the SAFE verdicts are best read as a
+baseline, not a clean bill of health. Worth understanding before trusting the score:
 
 - **Static-only run.** I scanned with `--no-llm` (no API key required). SkillSpector
   itself notes static analysis has *"moderate precision (some false positives)"*; the
   optional LLM stage raises precision to ~87% by filtering them. Re-run with `--llm`
   for a sharper read (see below).
-- **Bundled versions & zips inflate counts.** `odc-canvas` (38 findings) and
-  `odc-2-artefact` bundle multiple versioned `.skill`/`.zip` copies, so the same
-  pattern is counted once per copy.
-- **The flags that actually merit a look:**
-  - `SC4` in `frontend-design-recommender` — a dependency in `scripts/requirements.txt`
-    with a **known CVE** (live OSV.dev lookup). This one is real and worth pinning/bumping.
-  - `OH1` / `PE3` in `wiki-curator` — `scripts/detect_changes.py` uses model output
-    without sanitization, and a patch file touches credential-file paths.
-  - `TM1` (Tool Misuse) across odc-* — crafted tool params (e.g. `shell=True`, `--force`).
-  - `MP3` (Memory Poisoning) / `P2` (Prompt Injection) hits are mostly inside
-    **reference content** (design-prompt corpora, `.xlsx`), i.e. data the skill ships,
-    not executable behavior — likely false positives, but skim them.
-
-Bottom line: nothing here looks malicious, but `frontend-design-recommender`'s CVE'd
-dependency and `wiki-curator`'s output handling are genuinely worth a fix.
+- **The two Medium flags merit a glance.** Both are `MCP Least Privilege`
+  (`create-graph-api`, `manage-portfolio`) — worth confirming each MCP tool is
+  scoped to only what the skill actually uses, but neither is exploitable on its own.
+- **Score ≠ malware.** A non-zero score reflects patterns static analysis treats as
+  risk signals on real automation skills, not evidence of malicious behavior.
 
 ## Re-running
 
