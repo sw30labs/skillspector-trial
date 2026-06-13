@@ -1,73 +1,13 @@
 {
   "scanned_at": "2026-06-12T10:53:04.704334+00:00",
   "skills_dir": "~/Code/SKILLS",
-  "n_skills": 10,
+  "n_skills": 6,
   "totals": {
-    "issues": 78,
-    "with_scripts": 7,
-    "not_safe": 4
+    "issues": 2,
+    "with_scripts": 3,
+    "not_safe": 0
   },
   "skills": [
-    {
-      "skill": "frontend-design-recommender",
-      "score": 100,
-      "severity": "CRITICAL",
-      "recommendation": "DO_NOT_INSTALL",
-      "n_issues": 13,
-      "by_severity": {
-        "MEDIUM": 7,
-        "HIGH": 5,
-        "LOW": 1
-      },
-      "has_scripts": true,
-      "components": 165,
-      "report": "frontend-design-recommender.json"
-    },
-    {
-      "skill": "odc-2-artefact",
-      "score": 100,
-      "severity": "CRITICAL",
-      "recommendation": "DO_NOT_INSTALL",
-      "n_issues": 12,
-      "by_severity": {
-        "MEDIUM": 1,
-        "LOW": 2,
-        "HIGH": 9
-      },
-      "has_scripts": true,
-      "components": 17,
-      "report": "odc-2-artefact.json"
-    },
-    {
-      "skill": "odc-canvas",
-      "score": 100,
-      "severity": "CRITICAL",
-      "recommendation": "DO_NOT_INSTALL",
-      "n_issues": 38,
-      "by_severity": {
-        "MEDIUM": 20,
-        "LOW": 12,
-        "HIGH": 6
-      },
-      "has_scripts": true,
-      "components": 44,
-      "report": "odc-canvas.json"
-    },
-    {
-      "skill": "wiki-curator",
-      "score": 100,
-      "severity": "CRITICAL",
-      "recommendation": "DO_NOT_INSTALL",
-      "n_issues": 13,
-      "by_severity": {
-        "MEDIUM": 9,
-        "HIGH": 3,
-        "LOW": 1
-      },
-      "has_scripts": true,
-      "components": 24,
-      "report": "wiki-curator.json"
-    },
     {
       "skill": "create-graph-api",
       "score": 13,
