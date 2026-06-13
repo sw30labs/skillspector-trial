@@ -1,0 +1,16 @@
+# Python / uv
+.venv/
+__pycache__/
+*.pyc
+.python-version
+
+# Secrets — never commit API keys (see SkillSpector/.env.example)
+.env
+*.env
+
+# OS cruft
+.DS_Store
+
+# Scan artifacts are regenerable via scripts/scan-skills.sh.
+# Kept in the repo as a snapshot by default; uncomment to stop tracking them:
+# reports/

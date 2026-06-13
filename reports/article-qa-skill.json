@@ -1,0 +1,35 @@
+{
+  "skill": {
+    "name": "article-qa",
+    "source": "~/Code/SKILLS/article-qa-skill",
+    "scanned_at": "2026-06-12T10:52:02.561299+00:00"
+  },
+  "risk_assessment": {
+    "score": 0,
+    "severity": "LOW",
+    "recommendation": "SAFE"
+  },
+  "components": [
+    {
+      "path": "SKILL.md",
+      "type": "markdown",
+      "lines": 95,
+      "executable": false,
+      "size_bytes": 4531
+    },
+    {
+      "path": "references/style-guide.md",
+      "type": "markdown",
+      "lines": 461,
+      "executable": false,
+      "size_bytes": 18569
+    }
+  ],
+  "issues": [],
+  "metadata": {
+    "has_executable_scripts": false,
+    "skillspector_version": "2.1.3",
+    "llm_requested": false,
+    "llm_available": false
+  }
+}

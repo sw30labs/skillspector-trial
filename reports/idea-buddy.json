@@ -1,0 +1,28 @@
+{
+  "skill": {
+    "name": "idea-buddy",
+    "source": "~/Code/SKILLS/idea-buddy",
+    "scanned_at": "2026-06-12T10:52:31.961941+00:00"
+  },
+  "risk_assessment": {
+    "score": 0,
+    "severity": "LOW",
+    "recommendation": "SAFE"
+  },
+  "components": [
+    {
+      "path": "SKILL.md",
+      "type": "markdown",
+      "lines": 131,
+      "executable": false,
+      "size_bytes": 6887
+    }
+  ],
+  "issues": [],
+  "metadata": {
+    "has_executable_scripts": false,
+    "skillspector_version": "2.1.3",
+    "llm_requested": false,
+    "llm_available": false
+  }
+}

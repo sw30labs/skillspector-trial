@@ -1,0 +1,60 @@
+{
+  "skill": {
+    "name": "manage-portfolio",
+    "source": "~/Code/SKILLS/manage-portfolio",
+    "scanned_at": "2026-06-12T10:52:33.191947+00:00"
+  },
+  "risk_assessment": {
+    "score": 13,
+    "severity": "LOW",
+    "recommendation": "SAFE"
+  },
+  "components": [
+    {
+      "path": "SKILL.md",
+      "type": "markdown",
+      "lines": 491,
+      "executable": false,
+      "size_bytes": 16798
+    },
+    {
+      "path": "references/project_schema.md",
+      "type": "markdown",
+      "lines": 131,
+      "executable": false,
+      "size_bytes": 6127
+    },
+    {
+      "path": "scripts/portfolio_inspector.py",
+      "type": "python",
+      "lines": 266,
+      "executable": true,
+      "size_bytes": 8632
+    }
+  ],
+  "issues": [
+    {
+      "id": "LP3",
+      "category": "MCP Least Privilege",
+      "pattern": null,
+      "severity": "MEDIUM",
+      "confidence": 0.7,
+      "location": {
+        "file": "SKILL.md",
+        "start_line": 1,
+        "end_line": null
+      },
+      "finding": null,
+      "explanation": "Without declared permissions the skill's intent is opaque and cannot be validated.",
+      "remediation": "Add a 'permissions' field to SKILL.md listing the capabilities this skill requires.",
+      "code_snippet": null,
+      "intent": null
+    }
+  ],
+  "metadata": {
+    "has_executable_scripts": true,
+    "skillspector_version": "2.1.3",
+    "llm_requested": false,
+    "llm_available": false
+  }
+}

@@ -1,0 +1,175 @@
+# SkillSpector Security Report
+
+**Skill:** unknown  
+**Source:** `~/Code/SKILLS/odc-2-artefact`  
+**Scanned:** 2026-06-12 10:52:41 UTC  
+
+## Risk Assessment
+
+| Metric | Value |
+|--------|-------|
+| Score | 100/100 |
+| Severity | CRITICAL |
+| Recommendation | DO NOT INSTALL |
+
+## Components (17)
+
+| File | Type | Lines | Executable |
+|------|------|-------|------------|
+| `v1/SKILL.md` | markdown | 180 | No |
+| `v1/examples/session-data.example.json` | json | 271 | No |
+| `v1/odc-session-to-artifacts.skill` | other | 1469 | No |
+| `v1/references/canvas-structure.md` | markdown | 138 | No |
+| `v1/references/deck-structure.md` | markdown | 185 | No |
+| `v1/references/extraction-checklist.md` | markdown | 193 | No |
+| `v1/references/report-structure.md` | markdown | 118 | No |
+| `v1/references/visual-qa-prompt.md` | markdown | 102 | No |
+| `v1/schemas/session-data.schema.json` | json | 256 | No |
+| `v1/scripts/bootstrap.sh` | shell | 35 | Yes |
+| `v1/scripts/verify.sh` | shell | 78 | Yes |
+| `v1/templates/canvas.js` | javascript | 598 | Yes |
+| `v1/templates/deck.js` | javascript | 936 | Yes |
+| `v1/templates/package-lock.json` | json | 266 | No |
+| `v1/templates/package.json` | json | 11 | No |
+| `v1/templates/report.js` | javascript | 415 | Yes |
+| `v2/odc-session-to-artifacts.skill` | other | 12377 | No |
+
+## Issues (12)
+
+### 🟡 MEDIUM: OH3
+
+**Location:** `v1/references/visual-qa-prompt.md:30`  
+**Confidence:** 60%  
+
+**Message:** Unbounded Output
+
+**Remediation:** Set explicit limits on output length, generation count, and rate. Use max_tokens and truncation to prevent unbounded output.
+
+---
+
+### 🟢 LOW: SC1
+
+**Location:** `v1/templates/package.json:8`  
+**Confidence:** 40%  
+
+**Message:** Unpinned Dependencies
+
+**Remediation:** Pin all dependency versions in requirements.txt or pyproject.toml. Use exact versions (==) or compatible ranges. Run pip-audit regularly.
+
+---
+
+### 🟢 LOW: SC1
+
+**Location:** `v1/templates/package.json:9`  
+**Confidence:** 40%  
+
+**Message:** Unpinned Dependencies
+
+**Remediation:** Pin all dependency versions in requirements.txt or pyproject.toml. Use exact versions (==) or compatible ranges. Run pip-audit regularly.
+
+---
+
+### 🔴 HIGH: TM1
+
+**Location:** `v1/odc-session-to-artifacts.skill:317`  
+**Confidence:** 85%  
+
+**Message:** Tool Parameter Abuse
+
+**Remediation:** Validate all tool parameters against an allowlist. Reject dangerous parameter values (shell=True, --force, -rf /) and use safe defaults.
+
+---
+
+### 🔴 HIGH: TM1
+
+**Location:** `v1/odc-session-to-artifacts.skill:409`  
+**Confidence:** 85%  
+
+**Message:** Tool Parameter Abuse
+
+**Remediation:** Validate all tool parameters against an allowlist. Reject dangerous parameter values (shell=True, --force, -rf /) and use safe defaults.
+
+---
+
+### 🔴 HIGH: TM1
+
+**Location:** `v2/odc-session-to-artifacts.skill:25`  
+**Confidence:** 85%  
+
+**Message:** Tool Parameter Abuse
+
+**Remediation:** Validate all tool parameters against an allowlist. Reject dangerous parameter values (shell=True, --force, -rf /) and use safe defaults.
+
+---
+
+### 🔴 HIGH: TM1
+
+**Location:** `v2/odc-session-to-artifacts.skill:1546`  
+**Confidence:** 85%  
+
+**Message:** Tool Parameter Abuse
+
+**Remediation:** Validate all tool parameters against an allowlist. Reject dangerous parameter values (shell=True, --force, -rf /) and use safe defaults.
+
+---
+
+### 🔴 HIGH: TM1
+
+**Location:** `v2/odc-session-to-artifacts.skill:1820`  
+**Confidence:** 85%  
+
+**Message:** Tool Parameter Abuse
+
+**Remediation:** Validate all tool parameters against an allowlist. Reject dangerous parameter values (shell=True, --force, -rf /) and use safe defaults.
+
+---
+
+### 🔴 HIGH: TM1
+
+**Location:** `v2/odc-session-to-artifacts.skill:2188`  
+**Confidence:** 85%  
+
+**Message:** Tool Parameter Abuse
+
+**Remediation:** Validate all tool parameters against an allowlist. Reject dangerous parameter values (shell=True, --force, -rf /) and use safe defaults.
+
+---
+
+### 🔴 HIGH: TM1
+
+**Location:** `v2/odc-session-to-artifacts.skill:2453`  
+**Confidence:** 85%  
+
+**Message:** Tool Parameter Abuse
+
+**Remediation:** Validate all tool parameters against an allowlist. Reject dangerous parameter values (shell=True, --force, -rf /) and use safe defaults.
+
+---
+
+### 🔴 HIGH: TM1
+
+**Location:** `v2/odc-session-to-artifacts.skill:3356`  
+**Confidence:** 85%  
+
+**Message:** Tool Parameter Abuse
+
+**Remediation:** Validate all tool parameters against an allowlist. Reject dangerous parameter values (shell=True, --force, -rf /) and use safe defaults.
+
+---
+
+### 🔴 HIGH: TM1
+
+**Location:** `v2/odc-session-to-artifacts.skill:3448`  
+**Confidence:** 85%  
+
+**Message:** Tool Parameter Abuse
+
+**Remediation:** Validate all tool parameters against an allowlist. Reject dangerous parameter values (shell=True, --force, -rf /) and use safe defaults.
+
+---
+
+## Metadata
+
+- **Executable Scripts:** Yes
+
+*Generated by SkillSpector v2.1.3*

@@ -1,0 +1,976 @@
+{
+  "skill": {
+    "name": "unknown",
+    "source": "~/Code/SKILLS/odc-canvas",
+    "scanned_at": "2026-06-12T10:52:48.930826+00:00"
+  },
+  "risk_assessment": {
+    "score": 100,
+    "severity": "CRITICAL",
+    "recommendation": "DO_NOT_INSTALL"
+  },
+  "components": [
+    {
+      "path": "odc-canvas-v1.3.0.skill",
+      "type": "other",
+      "lines": 3696,
+      "executable": false,
+      "size_bytes": 139999
+    },
+    {
+      "path": "odc-canvas-v1.3.1.skill",
+      "type": "other",
+      "lines": 3860,
+      "executable": false,
+      "size_bytes": 152516
+    },
+    {
+      "path": "odc-canvas-v1.3.1/LICENSE",
+      "type": "other",
+      "lines": 197,
+      "executable": false,
+      "size_bytes": 10379
+    },
+    {
+      "path": "odc-canvas-v1.3.1/README.md",
+      "type": "markdown",
+      "lines": 65,
+      "executable": false,
+      "size_bytes": 2197
+    },
+    {
+      "path": "odc-canvas-v1.3.1/SKILL.md",
+      "type": "markdown",
+      "lines": 1097,
+      "executable": false,
+      "size_bytes": 61403
+    },
+    {
+      "path": "odc-canvas-v1.3.1/assets/schema.json",
+      "type": "json",
+      "lines": 1479,
+      "executable": false,
+      "size_bytes": 52146
+    },
+    {
+      "path": "odc-canvas-v1.3.1/examples/sample-canvas.json",
+      "type": "json",
+      "lines": 414,
+      "executable": false,
+      "size_bytes": 14968
+    },
+    {
+      "path": "odc-canvas-v1.3.1/references/canvas-field-definitions.md",
+      "type": "markdown",
+      "lines": 270,
+      "executable": false,
+      "size_bytes": 35417
+    },
+    {
+      "path": "odc-canvas-v1.3.1/references/consistency-check-specs.md",
+      "type": "markdown",
+      "lines": 428,
+      "executable": false,
+      "size_bytes": 31558
+    },
+    {
+      "path": "odc-canvas-v1.3.1/references/deployment-readiness.md",
+      "type": "markdown",
+      "lines": 322,
+      "executable": false,
+      "size_bytes": 22708
+    },
+    {
+      "path": "odc-canvas-v1.3.1/references/docx-template-spec.md",
+      "type": "markdown",
+      "lines": 480,
+      "executable": false,
+      "size_bytes": 18144
+    },
+    {
+      "path": "odc-canvas-v1.3.1/references/meridian-example.md",
+      "type": "markdown",
+      "lines": 318,
+      "executable": false,
+      "size_bytes": 40256
+    },
+    {
+      "path": "odc-canvas-v1.3.1/references/pushback-patterns.md",
+      "type": "markdown",
+      "lines": 550,
+      "executable": false,
+      "size_bytes": 35477
+    },
+    {
+      "path": "odc-canvas-v1.3.1/references/quality-rubric.md",
+      "type": "markdown",
+      "lines": 348,
+      "executable": false,
+      "size_bytes": 17607
+    },
+    {
+      "path": "odc-canvas-v1.3.1/scripts/consistency-checks.mjs",
+      "type": "other",
+      "lines": 1067,
+      "executable": false,
+      "size_bytes": 37391
+    },
+    {
+      "path": "odc-canvas-v1.3.1/scripts/generate-baseline-record.mjs",
+      "type": "other",
+      "lines": 525,
+      "executable": false,
+      "size_bytes": 19201
+    },
+    {
+      "path": "odc-canvas-v1.3.1/scripts/generate-docx.mjs",
+      "type": "other",
+      "lines": 780,
+      "executable": false,
+      "size_bytes": 24218
+    },
+    {
+      "path": "odc-canvas-v1.3.1/scripts/generate-json.mjs",
+      "type": "other",
+      "lines": 244,
+      "executable": false,
+      "size_bytes": 6743
+    },
+    {
+      "path": "odc-canvas-v1.3.1/scripts/install-deps.sh",
+      "type": "shell",
+      "lines": 33,
+      "executable": true,
+      "size_bytes": 824
+    },
+    {
+      "path": "odc-canvas-v1.3.1/scripts/package.json",
+      "type": "json",
+      "lines": 16,
+      "executable": false,
+      "size_bytes": 290
+    },
+    {
+      "path": "odc-canvas-v1.3.1/scripts/patch20260417.md",
+      "type": "markdown",
+      "lines": 65,
+      "executable": false,
+      "size_bytes": 2846
+    },
+    {
+      "path": "odc-canvas-v1.3.1/scripts/submit-to-pe.sh",
+      "type": "shell",
+      "lines": 241,
+      "executable": true,
+      "size_bytes": 6790
+    },
+    {
+      "path": "odc-canvas-v1.4.0/odc-canvas-v1.4.0.zip",
+      "type": "other",
+      "lines": 3865,
+      "executable": false,
+      "size_bytes": 143403
+    },
+    {
+      "path": "odc-canvas-v1.4.0/odc-canvas/LICENSE",
+      "type": "other",
+      "lines": 197,
+      "executable": false,
+      "size_bytes": 10379
+    },
+    {
+      "path": "odc-canvas-v1.4.0/odc-canvas/README.md",
+      "type": "markdown",
+      "lines": 67,
+      "executable": false,
+      "size_bytes": 2693
+    },
+    {
+      "path": "odc-canvas-v1.4.0/odc-canvas/SKILL.md",
+      "type": "markdown",
+      "lines": 1162,
+      "executable": false,
+      "size_bytes": 70411
+    },
+    {
+      "path": "odc-canvas-v1.4.0/odc-canvas/assets/schema.json",
+      "type": "json",
+      "lines": 2102,
+      "executable": false,
+      "size_bytes": 60448
+    },
+    {
+      "path": "odc-canvas-v1.4.0/odc-canvas/examples/sample-canvas.json",
+      "type": "json",
+      "lines": 424,
+      "executable": false,
+      "size_bytes": 15350
+    },
+    {
+      "path": "odc-canvas-v1.4.0/odc-canvas/references/canonical-components.md",
+      "type": "markdown",
+      "lines": 171,
+      "executable": false,
+      "size_bytes": 17405
+    },
+    {
+      "path": "odc-canvas-v1.4.0/odc-canvas/references/canvas-field-definitions.md",
+      "type": "markdown",
+      "lines": 360,
+      "executable": false,
+      "size_bytes": 35708
+    },
+    {
+      "path": "odc-canvas-v1.4.0/odc-canvas/references/consistency-check-specs.md",
+      "type": "markdown",
+      "lines": 428,
+      "executable": false,
+      "size_bytes": 32036
+    },
+    {
+      "path": "odc-canvas-v1.4.0/odc-canvas/references/deployment-readiness.md",
+      "type": "markdown",
+      "lines": 330,
+      "executable": false,
+      "size_bytes": 23752
+    },
+    {
+      "path": "odc-canvas-v1.4.0/odc-canvas/references/docx-template-spec.md",
+      "type": "markdown",
+      "lines": 480,
+      "executable": false,
+      "size_bytes": 19053
+    },
+    {
+      "path": "odc-canvas-v1.4.0/odc-canvas/references/meridian-example.md",
+      "type": "markdown",
+      "lines": 90,
+      "executable": false,
+      "size_bytes": 14454
+    },
+    {
+      "path": "odc-canvas-v1.4.0/odc-canvas/references/pushback-patterns.md",
+      "type": "markdown",
+      "lines": 550,
+      "executable": false,
+      "size_bytes": 35859
+    },
+    {
+      "path": "odc-canvas-v1.4.0/odc-canvas/references/quality-rubric.md",
+      "type": "markdown",
+      "lines": 348,
+      "executable": false,
+      "size_bytes": 17788
+    },
+    {
+      "path": "odc-canvas-v1.4.0/odc-canvas/scripts/consistency-checks.mjs",
+      "type": "other",
+      "lines": 1067,
+      "executable": false,
+      "size_bytes": 37735
+    },
+    {
+      "path": "odc-canvas-v1.4.0/odc-canvas/scripts/generate-baseline-record.mjs",
+      "type": "other",
+      "lines": 520,
+      "executable": false,
+      "size_bytes": 19042
+    },
+    {
+      "path": "odc-canvas-v1.4.0/odc-canvas/scripts/generate-docx.mjs",
+      "type": "other",
+      "lines": 718,
+      "executable": false,
+      "size_bytes": 21881
+    },
+    {
+      "path": "odc-canvas-v1.4.0/odc-canvas/scripts/generate-json.mjs",
+      "type": "other",
+      "lines": 244,
+      "executable": false,
+      "size_bytes": 6743
+    },
+    {
+      "path": "odc-canvas-v1.4.0/odc-canvas/scripts/install-deps.sh",
+      "type": "shell",
+      "lines": 33,
+      "executable": true,
+      "size_bytes": 824
+    },
+    {
+      "path": "odc-canvas-v1.4.0/odc-canvas/scripts/package.json",
+      "type": "json",
+      "lines": 16,
+      "executable": false,
+      "size_bytes": 290
+    },
+    {
+      "path": "odc-canvas-v1.4.0/odc-canvas/scripts/submit-to-pe.sh",
+      "type": "shell",
+      "lines": 241,
+      "executable": true,
+      "size_bytes": 6790
+    },
+    {
+      "path": "odc-canvas.zip",
+      "type": "other",
+      "lines": 3757,
+      "executable": false,
+      "size_bytes": 148132
+    }
+  ],
+  "issues": [
+    {
+      "id": "E1",
+      "category": "Data Exfiltration",
+      "pattern": "External Transmission",
+      "severity": "MEDIUM",
+      "confidence": 0.7,
+      "location": {
+        "file": "odc-canvas-v1.3.1/scripts/submit-to-pe.sh",
+        "start_line": 113,
+        "end_line": null
+      },
+      "finding": "curl \\\n      --silent \\\n      --write-out \"%{http_code}\" \\\n      --output /tmp/pe-response.json \\\n      --max-time \"$PE_TIMEOUT\" \\\n      --header \"Content-Type: application/json\" \\\n      --header \"Aut",
+      "explanation": "Data is being sent to an external URL. This could be legitimate telemetry or data exfiltration. Manual review is recommended.",
+      "remediation": "Verify the destination URL is trusted and necessary. Remove or replace with documented APIs. Ensure no secrets, tokens, or PII are transmitted.",
+      "code_snippet": "    # Make request with timeout\n    local http_code\n    local response\n    http_code=$(curl \\\n      --silent \\\n      --write-out \"%{http_code}\" \\\n      --output /tmp/pe-response.json \\",
+      "intent": null
+    },
+    {
+      "id": "E1",
+      "category": "Data Exfiltration",
+      "pattern": "External Transmission",
+      "severity": "MEDIUM",
+      "confidence": 0.7,
+      "location": {
+        "file": "odc-canvas-v1.4.0/odc-canvas/scripts/submit-to-pe.sh",
+        "start_line": 113,
+        "end_line": null
+      },
+      "finding": "curl \\\n      --silent \\\n      --write-out \"%{http_code}\" \\\n      --output /tmp/pe-response.json \\\n      --max-time \"$PE_TIMEOUT\" \\\n      --header \"Content-Type: application/json\" \\\n      --header \"Aut",
+      "explanation": "Data is being sent to an external URL. This could be legitimate telemetry or data exfiltration. Manual review is recommended.",
+      "remediation": "Verify the destination URL is trusted and necessary. Remove or replace with documented APIs. Ensure no secrets, tokens, or PII are transmitted.",
+      "code_snippet": "    # Make request with timeout\n    local http_code\n    local response\n    http_code=$(curl \\\n      --silent \\\n      --write-out \"%{http_code}\" \\\n      --output /tmp/pe-response.json \\",
+      "intent": null
+    },
+    {
+      "id": "EA3",
+      "category": "Excessive Agency",
+      "pattern": "Scope Creep",
+      "severity": "LOW",
+      "confidence": 0.7,
+      "location": {
+        "file": "odc-canvas-v1.3.1/LICENSE",
+        "start_line": 27,
+        "end_line": null
+      },
+      "finding": "not limited to",
+      "explanation": "Skill's behavior or capabilities extend beyond its stated purpose. Scope creep allows an agent to perform actions unrelated to its documented functionality, increasing the attack surface.",
+      "remediation": "Limit the skill's scope to its documented purpose. Remove instructions that enable the agent to perform actions outside its stated functionality.",
+      "code_snippet": "   permissions granted by this License.\n\n   \"Source\" form shall mean the preferred form for making modifications,\n   including but not limited to software source code, documentation\n   source, and configuration files.\n\n   \"Object\" form shall mean any form resulting from mechanical",
+      "intent": null
+    },
+    {
+      "id": "EA3",
+      "category": "Excessive Agency",
+      "pattern": "Scope Creep",
+      "severity": "LOW",
+      "confidence": 0.7,
+      "location": {
+        "file": "odc-canvas-v1.3.1/LICENSE",
+        "start_line": 32,
+        "end_line": null
+      },
+      "finding": "not limited to",
+      "explanation": "Skill's behavior or capabilities extend beyond its stated purpose. Scope creep allows an agent to perform actions unrelated to its documented functionality, increasing the attack surface.",
+      "remediation": "Limit the skill's scope to its documented purpose. Remove instructions that enable the agent to perform actions outside its stated functionality.",
+      "code_snippet": "\n   \"Object\" form shall mean any form resulting from mechanical\n   transformation or translation of a Source form, including but\n   not limited to compiled object code, generated documentation,\n   and conversions to other media types.\n\n   \"Work\" shall mean the work of authorship, whether in Source or Object",
+      "intent": null
+    },
+    {
+      "id": "EA3",
+      "category": "Excessive Agency",
+      "pattern": "Scope Creep",
+      "severity": "LOW",
+      "confidence": 0.7,
+      "location": {
+        "file": "odc-canvas-v1.3.1/LICENSE",
+        "start_line": 156,
+        "end_line": null
+      },
+      "finding": "not limited to",
+      "explanation": "Skill's behavior or capabilities extend beyond its stated purpose. Scope creep allows an agent to perform actions unrelated to its documented functionality, increasing the attack surface.",
+      "remediation": "Limit the skill's scope to its documented purpose. Remove instructions that enable the agent to perform actions outside its stated functionality.",
+      "code_snippet": "   liable to You for damages, including any direct, indirect, special,\n   incidental, or consequential damages of any character arising as a\n   result of this License or out of the use or inability to use the\n   Work (including but not limited to damages for loss of goodwill,\n   work stoppage, computer failure or malfunction, or any and all\n   other commercial damages or losses), even if such Contributor\n   has been advised of the possibility of such damages.",
+      "intent": null
+    },
+    {
+      "id": "EA2",
+      "category": "Excessive Agency",
+      "pattern": "Autonomous Decision Making",
+      "severity": "MEDIUM",
+      "confidence": 0.75,
+      "location": {
+        "file": "odc-canvas-v1.3.1/references/canvas-field-definitions.md",
+        "start_line": 81,
+        "end_line": null
+      },
+      "finding": "without asking",
+      "explanation": "Skill enables autonomous high-impact decisions without human-in-the-loop verification. Critical operations (destructive commands, financial transactions, data deletion) should require explicit user confirmation.",
+      "remediation": "Add human-in-the-loop confirmation for destructive, irreversible, or high-impact operations. Never auto-execute commands that modify files, send data, or alter system state.",
+      "code_snippet": "| Field | Path | Description | Criticality | Data Type | Required For | Diagnostic Questions |\n|-------|------|-------------|-------------|-----------|--------------|---------------------|\n| Safety Owner | S3.named_owner.owner | **Single named individual** responsible for maintaining safety governance of the agent over time. Must be an actual person, not a team or role. Format: Full name, title, email, authority_level. | CRITICAL | object | all | WHO\u2014by name\u2014is accountable for safety? What's their authority? Can they actually stop the agent if needed? Is this role funded and protected? |\n| Owner Authority | S3.named_owner.authority | Explicit statement of the owner's power: can pause agent unilaterally? Can modify S3 constraints? Can escalate incidents? Required approval chain if applicable. | CRITICAL | text | all | What can the safety owner actually do? Can they pause the agent without asking permission? |\n| Owner Succession Plan | S3.named_owner.succession_plan | Named backup and explicit handoff protocol if primary owner departs. | HIGH | object | all | If the safety owner leaves, what happens? Who's the backup? How is knowledge transferred? |\n\n### Fence Components",
+      "intent": null
+    },
+    {
+      "id": "EA2",
+      "category": "Excessive Agency",
+      "pattern": "Autonomous Decision Making",
+      "severity": "MEDIUM",
+      "confidence": 0.75,
+      "location": {
+        "file": "odc-canvas-v1.3.1/references/canvas-field-definitions.md",
+        "start_line": 184,
+        "end_line": null
+      },
+      "finding": "without asking",
+      "explanation": "Skill enables autonomous high-impact decisions without human-in-the-loop verification. Critical operations (destructive commands, financial transactions, data deletion) should require explicit user confirmation.",
+      "remediation": "Add human-in-the-loop confirmation for destructive, irreversible, or high-impact operations. Never auto-execute commands that modify files, send data, or alter system state.",
+      "code_snippet": "| Field | Path | Description | Criticality | Data Type | Required For | Diagnostic Questions |\n|-------|------|-------------|-------------|-----------|--------------|---------------------|\n| Fallback Protocols | S5.fallback.protocols | Array of predefined escalation paths when agent hits trigger or exception. Each protocol: protocol_id, trigger_id_this_handles, escalation_target (named individual, NOT a team or role), escalation_notify_method (email, page, phone, alert system), expected_response_time, fallback_action_if_escalation_fails. | CRITICAL | array[object] | all | If something goes wrong, who specifically gets the alert? By name, not role. How? How fast must they respond? What happens if they don't? |\n| Fallback Clarity | S5.fallback.fallback_clarity | Validate each protocol: Is the escalation target a named person? If no response in X time, what's the next step? Is there a secondary escalation? | HIGH | object | all | Could someone implement this protocol without asking for clarification? Are all names filled in? |\n| Fallback Testing | S5.fallback.fallback_testing | Protocol for testing escalation paths. Include: test_scenario, expected_notification_received_by (named person), verification (did they actually get notified?), frequency (how often tested). | MEDIUM | array[object] | all | Have you tested that escalation messages actually reach the right person? |\n\n### Manual Fallback Protocol Component",
+      "intent": null
+    },
+    {
+      "id": "EA2",
+      "category": "Excessive Agency",
+      "pattern": "Autonomous Decision Making",
+      "severity": "MEDIUM",
+      "confidence": 0.75,
+      "location": {
+        "file": "odc-canvas-v1.3.1/references/deployment-readiness.md",
+        "start_line": 75,
+        "end_line": null
+      },
+      "finding": "without asking",
+      "explanation": "Skill enables autonomous high-impact decisions without human-in-the-loop verification. Critical operations (destructive commands, financial transactions, data deletion) should require explicit user confirmation.",
+      "remediation": "Add human-in-the-loop confirmation for destructive, irreversible, or high-impact operations. Never auto-execute commands that modify files, send data, or alter system state.",
+      "code_snippet": "\n### What This Is Really Asking\n\n**Surface Level**: In an emergency (agent is producing garbage), who has the power to stop it immediately without asking permission?\n\n**Deeper Level**: Is the kill switch real or theoretical? Can someone actually exercise it in 5 minutes? Or does it require meetings and approvals?\n",
+      "intent": null
+    },
+    {
+      "id": "EA2",
+      "category": "Excessive Agency",
+      "pattern": "Autonomous Decision Making",
+      "severity": "MEDIUM",
+      "confidence": 0.75,
+      "location": {
+        "file": "odc-canvas-v1.3.1/references/deployment-readiness.md",
+        "start_line": 245,
+        "end_line": null
+      },
+      "finding": "no approval",
+      "explanation": "Skill enables autonomous high-impact decisions without human-in-the-loop verification. Critical operations (destructive commands, financial transactions, data deletion) should require explicit user confirmation.",
+      "remediation": "Add human-in-the-loop confirmation for destructive, irreversible, or high-impact operations. Never auto-execute commands that modify files, send data, or alter system state.",
+      "code_snippet": "| Question | Green Flag | Red Flag | Action if Red |\n|---|---|---|---|\n| **Q1: Who watches what signals?** | Named monitors, specific signals, check frequency, obligation to act, backup plan | Vague monitoring, no names, \"the team,\" aspirational | Define monitoring responsibilities and update Canvas S6; add to job descriptions |\n| **Q2: Who can pause?** | Named safety owner with unilateral authority, <5 min execution, backup plan, no approval needed | Committee decision, needs management approval, no named owner, \"we'll figure it out\" | Assign pause authority to named individual, ensure they have system access, document in Canvas S3 |\n| **Q3: Who communicates?** | Named communicator, clear message template, escalation order (internal \u2192 users \u2192 mgmt \u2192 post-mortem), backup plan | Vague communication, no owner, \"management handles,\" no template | Create communication playbook with named owner, templates, timeline |\n| **Q4: Can team diagnose?** | Decision log + Five-Number Panel sufficient to distinguish design vs. drift without calling builders, has diagnosed before | Dependent on engineers, no diagnostic framework, insufficient monitoring | Enhance decision log (S3), add feedback loops (S6), train team on diagnostic process |\n",
+      "intent": null
+    },
+    {
+      "id": "EA2",
+      "category": "Excessive Agency",
+      "pattern": "Autonomous Decision Making",
+      "severity": "MEDIUM",
+      "confidence": 0.75,
+      "location": {
+        "file": "odc-canvas-v1.3.1/references/deployment-readiness.md",
+        "start_line": 297,
+        "end_line": null
+      },
+      "finding": "no approval",
+      "explanation": "Skill enables autonomous high-impact decisions without human-in-the-loop verification. Critical operations (destructive commands, financial transactions, data deletion) should require explicit user confirmation.",
+      "remediation": "Add human-in-the-loop confirmation for destructive, irreversible, or high-impact operations. Never auto-execute commands that modify files, send data, or alter system state.",
+      "code_snippet": "\nQUESTION 2: Pause Authority\n[ ] Named safety owner: ______________ (name), ______________ (phone/email)\n[ ] Pause authority confirmed unilateral (no approval needed)\n[ ] Method for pausing documented (who to call, how, expected time)\n[ ] Backup with same authority named: ______________ (name)\n[ ] Pause notification process defined (who is told immediately)",
+      "intent": null
+    },
+    {
+      "id": "EA2",
+      "category": "Excessive Agency",
+      "pattern": "Autonomous Decision Making",
+      "severity": "MEDIUM",
+      "confidence": 0.75,
+      "location": {
+        "file": "odc-canvas-v1.3.1/references/docx-template-spec.md",
+        "start_line": 173,
+        "end_line": null
+      },
+      "finding": "No approval",
+      "explanation": "Skill enables autonomous high-impact decisions without human-in-the-loop verification. Critical operations (destructive commands, financial transactions, data deletion) should require explicit user confirmation.",
+      "remediation": "Add human-in-the-loop confirmation for destructive, irreversible, or high-impact operations. Never auto-execute commands that modify files, send data, or alter system state.",
+      "code_snippet": "| Question | Answer | Status |\n|---|---|---|\n| **Q1: Who watches which signals?** | David Kim (exception rate, daily 10 AM). Maria Santos (spot-check pass rate, weekly Friday). Alex Chen (ceiling score, monthly 1st Thursday). | \u2713 READY |\n| **Q2: Who can pause unilaterally?** | David Kim, Head of Research Quality. No approval needed. Backup: Maria Santos. Pause method: Slack #agent-pause or call ops. | \u2713 READY |\n| **Q3: Who communicates?** | David Kim owns communication. Internal: #agent-health immediately. Users: email within 30 min. Mgmt: call VP Research within 1 hour. | \u2713 READY |\n| **Q4: Can team diagnose?** | Yes. Team can distinguish design vs. drift using Five-Number Panel + feedback loop analysis. Have diagnosed 3 issues without calling engineers. | \u2713 READY |\n",
+      "intent": null
+    },
+    {
+      "id": "EA2",
+      "category": "Excessive Agency",
+      "pattern": "Autonomous Decision Making",
+      "severity": "MEDIUM",
+      "confidence": 0.75,
+      "location": {
+        "file": "odc-canvas-v1.3.1/references/pushback-patterns.md",
+        "start_line": 123,
+        "end_line": null
+      },
+      "finding": "without asking",
+      "explanation": "Skill enables autonomous high-impact decisions without human-in-the-loop verification. Critical operations (destructive commands, financial transactions, data deletion) should require explicit user confirmation.",
+      "remediation": "Add human-in-the-loop confirmation for destructive, irreversible, or high-impact operations. Never auto-execute commands that modify files, send data, or alter system state.",
+      "code_snippet": "**Red Flag**: \"Research quality is overseen by the research team.\"\n\n**Pass 1 Response**:\n\"Got it. To pin this down: Who is the actual named person accountable for this? If something goes wrong with the agent, who do we call? They need to have the authority to say 'stop the agent' without asking for permission. Can you give me a name and title?\"\n\n---\n",
+      "intent": null
+    },
+    {
+      "id": "EA2",
+      "category": "Excessive Agency",
+      "pattern": "Autonomous Decision Making",
+      "severity": "MEDIUM",
+      "confidence": 0.75,
+      "location": {
+        "file": "odc-canvas-v1.3.1/references/quality-rubric.md",
+        "start_line": 31,
+        "end_line": null
+      },
+      "finding": "without asking",
+      "explanation": "Skill enables autonomous high-impact decisions without human-in-the-loop verification. Critical operations (destructive commands, financial transactions, data deletion) should require explicit user confirmation.",
+      "remediation": "Add human-in-the-loop confirmation for destructive, irreversible, or high-impact operations. Never auto-execute commands that modify files, send data, or alter system state.",
+      "code_snippet": "---\n\n### Score 2 \u2014 VAGUE\n**State**: Contains hedge words, anonymous authority, or aspirational framing. No names, numbers, or dates. Reader cannot implement without asking for clarification.\n\n**Characteristics**:\n- Hedge words: \"usually\", \"generally\", \"typically\", \"kind of\", \"sort of\", \"might\"",
+      "intent": null
+    },
+    {
+      "id": "EA3",
+      "category": "Excessive Agency",
+      "pattern": "Scope Creep",
+      "severity": "LOW",
+      "confidence": 0.7,
+      "location": {
+        "file": "odc-canvas-v1.4.0/odc-canvas/LICENSE",
+        "start_line": 27,
+        "end_line": null
+      },
+      "finding": "not limited to",
+      "explanation": "Skill's behavior or capabilities extend beyond its stated purpose. Scope creep allows an agent to perform actions unrelated to its documented functionality, increasing the attack surface.",
+      "remediation": "Limit the skill's scope to its documented purpose. Remove instructions that enable the agent to perform actions outside its stated functionality.",
+      "code_snippet": "   permissions granted by this License.\n\n   \"Source\" form shall mean the preferred form for making modifications,\n   including but not limited to software source code, documentation\n   source, and configuration files.\n\n   \"Object\" form shall mean any form resulting from mechanical",
+      "intent": null
+    },
+    {
+      "id": "EA3",
+      "category": "Excessive Agency",
+      "pattern": "Scope Creep",
+      "severity": "LOW",
+      "confidence": 0.7,
+      "location": {
+        "file": "odc-canvas-v1.4.0/odc-canvas/LICENSE",
+        "start_line": 32,
+        "end_line": null
+      },
+      "finding": "not limited to",
+      "explanation": "Skill's behavior or capabilities extend beyond its stated purpose. Scope creep allows an agent to perform actions unrelated to its documented functionality, increasing the attack surface.",
+      "remediation": "Limit the skill's scope to its documented purpose. Remove instructions that enable the agent to perform actions outside its stated functionality.",
+      "code_snippet": "\n   \"Object\" form shall mean any form resulting from mechanical\n   transformation or translation of a Source form, including but\n   not limited to compiled object code, generated documentation,\n   and conversions to other media types.\n\n   \"Work\" shall mean the work of authorship, whether in Source or Object",
+      "intent": null
+    },
+    {
+      "id": "EA3",
+      "category": "Excessive Agency",
+      "pattern": "Scope Creep",
+      "severity": "LOW",
+      "confidence": 0.7,
+      "location": {
+        "file": "odc-canvas-v1.4.0/odc-canvas/LICENSE",
+        "start_line": 156,
+        "end_line": null
+      },
+      "finding": "not limited to",
+      "explanation": "Skill's behavior or capabilities extend beyond its stated purpose. Scope creep allows an agent to perform actions unrelated to its documented functionality, increasing the attack surface.",
+      "remediation": "Limit the skill's scope to its documented purpose. Remove instructions that enable the agent to perform actions outside its stated functionality.",
+      "code_snippet": "   liable to You for damages, including any direct, indirect, special,\n   incidental, or consequential damages of any character arising as a\n   result of this License or out of the use or inability to use the\n   Work (including but not limited to damages for loss of goodwill,\n   work stoppage, computer failure or malfunction, or any and all\n   other commercial damages or losses), even if such Contributor\n   has been advised of the possibility of such damages.",
+      "intent": null
+    },
+    {
+      "id": "EA2",
+      "category": "Excessive Agency",
+      "pattern": "Autonomous Decision Making",
+      "severity": "MEDIUM",
+      "confidence": 0.75,
+      "location": {
+        "file": "odc-canvas-v1.4.0/odc-canvas/references/canvas-field-definitions.md",
+        "start_line": 110,
+        "end_line": null
+      },
+      "finding": "without asking",
+      "explanation": "Skill enables autonomous high-impact decisions without human-in-the-loop verification. Critical operations (destructive commands, financial transactions, data deletion) should require explicit user confirmation.",
+      "remediation": "Add human-in-the-loop confirmation for destructive, irreversible, or high-impact operations. Never auto-execute commands that modify files, send data, or alter system state.",
+      "code_snippet": "| Field | Path | Description | Criticality | Data Type | Required For | Diagnostic Questions |\n|-------|------|-------------|-------------|-----------|--------------|---------------------|\n| Safety Owner | S3.named_owner.owner | **One named individual** \u2014 not a team \u2014 who can be asked to defend every output to a client, regulator, or auditor. Format: full name, title, email, authority_level. | CRITICAL | object | all | WHO, by name, is accountable? \"The compliance function\" (400 people) is not an answer. |\n| Owner Authority | S3.named_owner.authority | The owner's explicit powers: pause unilaterally? modify S32 constraints? escalate? approval chain if any. | CRITICAL | text | all | Can they pause the agent without asking permission? At any hour? |\n| Owner Succession Plan | S3.named_owner.succession_plan | Named backup and handoff protocol if the primary owner departs. | HIGH | object | all | If the owner leaves, who is the backup and how is knowledge transferred? |\n\n### S32 \u2014 Constraints list",
+      "intent": null
+    },
+    {
+      "id": "EA2",
+      "category": "Excessive Agency",
+      "pattern": "Autonomous Decision Making",
+      "severity": "MEDIUM",
+      "confidence": 0.75,
+      "location": {
+        "file": "odc-canvas-v1.4.0/odc-canvas/references/canvas-field-definitions.md",
+        "start_line": 169,
+        "end_line": null
+      },
+      "finding": "without approval",
+      "explanation": "Skill enables autonomous high-impact decisions without human-in-the-loop verification. Critical operations (destructive commands, financial transactions, data deletion) should require explicit user confirmation.",
+      "remediation": "Add human-in-the-loop confirmation for destructive, irreversible, or high-impact operations. Never auto-execute commands that modify files, send data, or alter system state.",
+      "code_snippet": "|-------|------|-------------|-------------|-----------|--------------|---------------------|\n| Authorized Systems | S3.fence.access_scope.authorized_systems | Named sources, systems, and tools the agent may access. Each: name, access_level (read/write/execute), justification. Principle of least privilege. | CRITICAL | array[object] | all | What can the agent reach? Does it need all of it for its mandate? |\n| Prohibited Access | S3.fence.access_scope.prohibited_access | Sources/systems/data types the agent must never read, store, or transmit. | CRITICAL | array[text] | all | What is the agent forbidden from touching (PII, financial, health, paywalled)? |\n| Autonomous Tools | S3.fence.access_scope.autonomous_tools | Tools the agent may invoke without approval. | HIGH | array[text] | all | Which tools can it use on its own? |\n| Approval-Required Tools | S3.fence.access_scope.approval_required_tools | Tools requiring human approval before use. | HIGH | array[text] | all | Which tools require sign-off first? |\n\n### S39 \u2014 Input contract",
+      "intent": null
+    },
+    {
+      "id": "EA2",
+      "category": "Excessive Agency",
+      "pattern": "Autonomous Decision Making",
+      "severity": "MEDIUM",
+      "confidence": 0.75,
+      "location": {
+        "file": "odc-canvas-v1.4.0/odc-canvas/references/deployment-readiness.md",
+        "start_line": 83,
+        "end_line": null
+      },
+      "finding": "without asking",
+      "explanation": "Skill enables autonomous high-impact decisions without human-in-the-loop verification. Critical operations (destructive commands, financial transactions, data deletion) should require explicit user confirmation.",
+      "remediation": "Add human-in-the-loop confirmation for destructive, irreversible, or high-impact operations. Never auto-execute commands that modify files, send data, or alter system state.",
+      "code_snippet": "\n### What This Is Really Asking\n\n**Surface Level**: In an emergency (agent is producing garbage), who has the power to stop it immediately without asking permission?\n\n**Deeper Level**: Is the kill switch real or theoretical? Can someone actually exercise it in 5 minutes? Or does it require meetings and approvals?\n",
+      "intent": null
+    },
+    {
+      "id": "EA2",
+      "category": "Excessive Agency",
+      "pattern": "Autonomous Decision Making",
+      "severity": "MEDIUM",
+      "confidence": 0.75,
+      "location": {
+        "file": "odc-canvas-v1.4.0/odc-canvas/references/deployment-readiness.md",
+        "start_line": 253,
+        "end_line": null
+      },
+      "finding": "no approval",
+      "explanation": "Skill enables autonomous high-impact decisions without human-in-the-loop verification. Critical operations (destructive commands, financial transactions, data deletion) should require explicit user confirmation.",
+      "remediation": "Add human-in-the-loop confirmation for destructive, irreversible, or high-impact operations. Never auto-execute commands that modify files, send data, or alter system state.",
+      "code_snippet": "| Question | Green Flag | Red Flag | Action if Red |\n|---|---|---|---|\n| **Q1 (S65/S67\u00b7S31): Who watches what signals?** | Named monitors, specific signals, check frequency, obligation to act, backup plan | Vague monitoring, no names, \"the team,\" aspirational | Define monitoring responsibilities and update Canvas S6; add to job descriptions |\n| **Q2 (S31): Who can pause?** | Named safety owner with unilateral authority, <5 min execution, backup plan, no approval needed | Committee decision, needs management approval, no named owner, \"we'll figure it out\" | Assign pause authority to named individual, ensure they have system access, document in Canvas S3 |\n| **Q3 (S31/S53): Who communicates?** | Named communicator, clear message template, escalation order (internal \u2192 users \u2192 mgmt \u2192 post-mortem), backup plan | Vague communication, no owner, \"management handles,\" no template | Create communication playbook with named owner, templates, timeline |\n| **Q4 (S37/S65/S67/S64): Can team diagnose?** | Decision log + Five-Number Panel sufficient to distinguish design vs. drift without calling builders, has diagnosed before | Dependent on engineers, no diagnostic framework, insufficient monitoring | Enhance decision log (S3), add feedback loops (S6), train team on diagnostic process |\n",
+      "intent": null
+    },
+    {
+      "id": "EA2",
+      "category": "Excessive Agency",
+      "pattern": "Autonomous Decision Making",
+      "severity": "MEDIUM",
+      "confidence": 0.75,
+      "location": {
+        "file": "odc-canvas-v1.4.0/odc-canvas/references/deployment-readiness.md",
+        "start_line": 305,
+        "end_line": null
+      },
+      "finding": "no approval",
+      "explanation": "Skill enables autonomous high-impact decisions without human-in-the-loop verification. Critical operations (destructive commands, financial transactions, data deletion) should require explicit user confirmation.",
+      "remediation": "Add human-in-the-loop confirmation for destructive, irreversible, or high-impact operations. Never auto-execute commands that modify files, send data, or alter system state.",
+      "code_snippet": "\nQUESTION 2: Pause Authority\n[ ] Named safety owner: ______________ (name), ______________ (phone/email)\n[ ] Pause authority confirmed unilateral (no approval needed)\n[ ] Method for pausing documented (who to call, how, expected time)\n[ ] Backup with same authority named: ______________ (name)\n[ ] Pause notification process defined (who is told immediately)",
+      "intent": null
+    },
+    {
+      "id": "EA2",
+      "category": "Excessive Agency",
+      "pattern": "Autonomous Decision Making",
+      "severity": "MEDIUM",
+      "confidence": 0.75,
+      "location": {
+        "file": "odc-canvas-v1.4.0/odc-canvas/references/docx-template-spec.md",
+        "start_line": 173,
+        "end_line": null
+      },
+      "finding": "No approval",
+      "explanation": "Skill enables autonomous high-impact decisions without human-in-the-loop verification. Critical operations (destructive commands, financial transactions, data deletion) should require explicit user confirmation.",
+      "remediation": "Add human-in-the-loop confirmation for destructive, irreversible, or high-impact operations. Never auto-execute commands that modify files, send data, or alter system state.",
+      "code_snippet": "| Question | Answer | Status |\n|---|---|---|\n| **Q1: Who watches which signals?** | David Kim (exception rate, daily 10 AM). Maria Santos (spot-check pass rate, weekly Friday). Alex Chen (ceiling score, monthly 1st Thursday). | \u2713 READY |\n| **Q2: Who can pause unilaterally?** | David Kim, Head of Research Quality. No approval needed. Backup: Maria Santos. Pause method: Slack #agent-pause or call ops. | \u2713 READY |\n| **Q3: Who communicates?** | David Kim owns communication. Internal: #agent-health immediately. Users: email within 30 min. Mgmt: call VP Research within 1 hour. | \u2713 READY |\n| **Q4: Can team diagnose?** | Yes. Team can distinguish design vs. drift using Five-Number Panel + feedback loop analysis. Have diagnosed 3 issues without calling engineers. | \u2713 READY |\n",
+      "intent": null
+    },
+    {
+      "id": "EA2",
+      "category": "Excessive Agency",
+      "pattern": "Autonomous Decision Making",
+      "severity": "MEDIUM",
+      "confidence": 0.75,
+      "location": {
+        "file": "odc-canvas-v1.4.0/odc-canvas/references/pushback-patterns.md",
+        "start_line": 123,
+        "end_line": null
+      },
+      "finding": "without asking",
+      "explanation": "Skill enables autonomous high-impact decisions without human-in-the-loop verification. Critical operations (destructive commands, financial transactions, data deletion) should require explicit user confirmation.",
+      "remediation": "Add human-in-the-loop confirmation for destructive, irreversible, or high-impact operations. Never auto-execute commands that modify files, send data, or alter system state.",
+      "code_snippet": "**Red Flag**: \"Research quality is overseen by the research team.\"\n\n**Pass 1 Response**:\n\"Got it. To pin this down: Who is the actual named person accountable for this? If something goes wrong with the agent, who do we call? They need to have the authority to say 'stop the agent' without asking for permission. Can you give me a name and title?\"\n\n---\n",
+      "intent": null
+    },
+    {
+      "id": "EA2",
+      "category": "Excessive Agency",
+      "pattern": "Autonomous Decision Making",
+      "severity": "MEDIUM",
+      "confidence": 0.75,
+      "location": {
+        "file": "odc-canvas-v1.4.0/odc-canvas/references/quality-rubric.md",
+        "start_line": 31,
+        "end_line": null
+      },
+      "finding": "without asking",
+      "explanation": "Skill enables autonomous high-impact decisions without human-in-the-loop verification. Critical operations (destructive commands, financial transactions, data deletion) should require explicit user confirmation.",
+      "remediation": "Add human-in-the-loop confirmation for destructive, irreversible, or high-impact operations. Never auto-execute commands that modify files, send data, or alter system state.",
+      "code_snippet": "---\n\n### Score 2 \u2014 VAGUE\n**State**: Contains hedge words, anonymous authority, or aspirational framing. No names, numbers, or dates. Reader cannot implement without asking for clarification.\n\n**Characteristics**:\n- Hedge words: \"usually\", \"generally\", \"typically\", \"kind of\", \"sort of\", \"might\"",
+      "intent": null
+    },
+    {
+      "id": "MP3",
+      "category": "Memory Poisoning",
+      "pattern": "Memory Manipulation",
+      "severity": "HIGH",
+      "confidence": 0.8,
+      "location": {
+        "file": "odc-canvas-v1.3.1/SKILL.md",
+        "start_line": 1010,
+        "end_line": null
+      },
+      "finding": "reset state",
+      "explanation": "Skill manipulates agent memory, state, or stored context. Memory corruption can alter personality, override safety rules, or cause unpredictable behavior.",
+      "remediation": "Protect agent memory and state from modification by untrusted content. Use read-only memory for critical instructions and validate all state changes.",
+      "code_snippet": "2. Display: \"Welcome back! You're [X]% through the assessment. Last active on [date]. Current phase: [phase name].\"\n3. Ask: \"Resume from where you left off, or start over?\"\n4. If resume: display current answers for this phase, ask \"Ready to continue?\" and proceed to next question\n5. If restart: confirm (will overwrite), reset state to phase 0\n\n---\n",
+      "intent": null
+    },
+    {
+      "id": "MP3",
+      "category": "Memory Poisoning",
+      "pattern": "Memory Manipulation",
+      "severity": "HIGH",
+      "confidence": 0.8,
+      "location": {
+        "file": "odc-canvas-v1.4.0/odc-canvas/SKILL.md",
+        "start_line": 1066,
+        "end_line": null
+      },
+      "finding": "reset state",
+      "explanation": "Skill manipulates agent memory, state, or stored context. Memory corruption can alter personality, override safety rules, or cause unpredictable behavior.",
+      "remediation": "Protect agent memory and state from modification by untrusted content. Use read-only memory for critical instructions and validate all state changes.",
+      "code_snippet": "2. Display: \"Welcome back! You're [X]% through the assessment. Last active on [date]. Current phase: [phase name].\"\n3. Ask: \"Resume from where you left off, or start over?\"\n4. If resume: display current answers for this phase, ask \"Ready to continue?\" and proceed to next question\n5. If restart: confirm (will overwrite), reset state to phase 0\n\n---\n",
+      "intent": null
+    },
+    {
+      "id": "RA2",
+      "category": "Rogue Agent",
+      "pattern": "Session Persistence",
+      "severity": "MEDIUM",
+      "confidence": 0.6,
+      "location": {
+        "file": "odc-canvas-v1.3.1/SKILL.md",
+        "start_line": 297,
+        "end_line": null
+      },
+      "finding": "Write state to disk",
+      "explanation": "Skill establishes unauthorized persistence across sessions via cron jobs, startup scripts, or state files. Session persistence allows an attacker to maintain access beyond the current interaction.",
+      "remediation": "Remove any persistence mechanisms (cron jobs, startup scripts, state files). Skills should not maintain state across sessions without explicit user consent.",
+      "code_snippet": "   - If accepted with a gap (score < 4 on a critical field, or user deferred), set `gap_flagged: true` and write a one-line `gap_note` explaining what is missing and the committed resolution\n   - Note confidence level (high/medium/low) for critical fields\n   - Update `updated_at` timestamp in state\n7. **Write state to disk** after each accepted answer\n\n**Per-field state shape (record every field this way \u2014 required for the Baseline Record):**\n```json",
+      "intent": null
+    },
+    {
+      "id": "RA2",
+      "category": "Rogue Agent",
+      "pattern": "Session Persistence",
+      "severity": "MEDIUM",
+      "confidence": 0.6,
+      "location": {
+        "file": "odc-canvas-v1.4.0/odc-canvas/SKILL.md",
+        "start_line": 301,
+        "end_line": null
+      },
+      "finding": "Write state to disk",
+      "explanation": "Skill establishes unauthorized persistence across sessions via cron jobs, startup scripts, or state files. Session persistence allows an attacker to maintain access beyond the current interaction.",
+      "remediation": "Remove any persistence mechanisms (cron jobs, startup scripts, state files). Skills should not maintain state across sessions without explicit user consent.",
+      "code_snippet": "   - If accepted with a gap (score < 4 on a critical field, or user deferred), set `gap_flagged: true` and write a one-line `gap_note` explaining what is missing and the committed resolution\n   - Note confidence level (high/medium/low) for critical fields\n   - Update `updated_at` timestamp in state\n7. **Write state to disk** after each accepted answer\n\n**Per-field state shape (record every field this way \u2014 required for the Baseline Record):**\n```json",
+      "intent": null
+    },
+    {
+      "id": "SC1",
+      "category": "Supply Chain",
+      "pattern": "Unpinned Dependencies",
+      "severity": "LOW",
+      "confidence": 0.4,
+      "location": {
+        "file": "odc-canvas-v1.3.1/scripts/package.json",
+        "start_line": 13,
+        "end_line": null
+      },
+      "finding": "\"docx\": \"^9.6.1\"",
+      "explanation": "Dependencies lack version pinning, allowing potential malicious package updates. Consider pinning versions.",
+      "remediation": "Pin all dependency versions in requirements.txt or pyproject.toml. Use exact versions (==) or compatible ranges. Run pip-audit regularly.",
+      "code_snippet": "  \"author\": \"\",\n  \"license\": \"ISC\",\n  \"dependencies\": {\n    \"docx\": \"^9.6.1\",\n    \"uuid\": \"^13.0.0\"\n  }\n}",
+      "intent": null
+    },
+    {
+      "id": "SC1",
+      "category": "Supply Chain",
+      "pattern": "Unpinned Dependencies",
+      "severity": "LOW",
+      "confidence": 0.4,
+      "location": {
+        "file": "odc-canvas-v1.3.1/scripts/package.json",
+        "start_line": 14,
+        "end_line": null
+      },
+      "finding": "\"uuid\": \"^13.0.0\"",
+      "explanation": "Dependencies lack version pinning, allowing potential malicious package updates. Consider pinning versions.",
+      "remediation": "Pin all dependency versions in requirements.txt or pyproject.toml. Use exact versions (==) or compatible ranges. Run pip-audit regularly.",
+      "code_snippet": "  \"license\": \"ISC\",\n  \"dependencies\": {\n    \"docx\": \"^9.6.1\",\n    \"uuid\": \"^13.0.0\"\n  }\n}",
+      "intent": null
+    },
+    {
+      "id": "SC1",
+      "category": "Supply Chain",
+      "pattern": "Unpinned Dependencies",
+      "severity": "LOW",
+      "confidence": 0.4,
+      "location": {
+        "file": "odc-canvas-v1.4.0/odc-canvas/scripts/package.json",
+        "start_line": 13,
+        "end_line": null
+      },
+      "finding": "\"docx\": \"^9.6.1\"",
+      "explanation": "Dependencies lack version pinning, allowing potential malicious package updates. Consider pinning versions.",
+      "remediation": "Pin all dependency versions in requirements.txt or pyproject.toml. Use exact versions (==) or compatible ranges. Run pip-audit regularly.",
+      "code_snippet": "  \"author\": \"\",\n  \"license\": \"ISC\",\n  \"dependencies\": {\n    \"docx\": \"^9.6.1\",\n    \"uuid\": \"^13.0.0\"\n  }\n}",
+      "intent": null
+    },
+    {
+      "id": "SC1",
+      "category": "Supply Chain",
+      "pattern": "Unpinned Dependencies",
+      "severity": "LOW",
+      "confidence": 0.4,
+      "location": {
+        "file": "odc-canvas-v1.4.0/odc-canvas/scripts/package.json",
+        "start_line": 14,
+        "end_line": null
+      },
+      "finding": "\"uuid\": \"^13.0.0\"",
+      "explanation": "Dependencies lack version pinning, allowing potential malicious package updates. Consider pinning versions.",
+      "remediation": "Pin all dependency versions in requirements.txt or pyproject.toml. Use exact versions (==) or compatible ranges. Run pip-audit regularly.",
+      "code_snippet": "  \"license\": \"ISC\",\n  \"dependencies\": {\n    \"docx\": \"^9.6.1\",\n    \"uuid\": \"^13.0.0\"\n  }\n}",
+      "intent": null
+    },
+    {
+      "id": "SC4",
+      "category": "Supply Chain",
+      "pattern": "Known Vulnerable Dependency: uuid==13.0.0 \u2014 1 advisory(ies): CVE-2026-41907 (uuid: Missing buffer bounds check in v3/v5/v6 when buf is provided)",
+      "severity": "LOW",
+      "confidence": 0.6,
+      "location": {
+        "file": "odc-canvas-v1.3.1/scripts/package.json",
+        "start_line": 14,
+        "end_line": null
+      },
+      "finding": "uuid==13.0.0",
+      "explanation": "Dependency has known vulnerabilities (CVEs). Using packages with unpatched security flaws exposes the environment to known exploits.",
+      "remediation": "Update the dependency to a patched version that addresses the known CVE. Check OSV (osv.dev) or NVD for details on the vulnerability.",
+      "code_snippet": null,
+      "intent": null
+    },
+    {
+      "id": "SC4",
+      "category": "Supply Chain",
+      "pattern": "Known Vulnerable Dependency: uuid==13.0.0 \u2014 1 advisory(ies): CVE-2026-41907 (uuid: Missing buffer bounds check in v3/v5/v6 when buf is provided)",
+      "severity": "LOW",
+      "confidence": 0.6,
+      "location": {
+        "file": "odc-canvas-v1.4.0/odc-canvas/scripts/package.json",
+        "start_line": 14,
+        "end_line": null
+      },
+      "finding": "uuid==13.0.0",
+      "explanation": "Dependency has known vulnerabilities (CVEs). Using packages with unpatched security flaws exposes the environment to known exploits.",
+      "remediation": "Update the dependency to a patched version that addresses the known CVE. Check OSV (osv.dev) or NVD for details on the vulnerability.",
+      "code_snippet": null,
+      "intent": null
+    },
+    {
+      "id": "TM1",
+      "category": "Tool Misuse",
+      "pattern": "Tool Parameter Abuse",
+      "severity": "HIGH",
+      "confidence": 0.85,
+      "location": {
+        "file": "odc-canvas-v1.3.0.skill",
+        "start_line": 775,
+        "end_line": null
+      },
+      "finding": "rME\ufffdq\ufffd\ufffd\u0019\ufffd\ufffdj\ufffd\u0006%7\ufffd\ufffd:9\ufffd\ufffdf\u0017\u0019V\\\ufffd\ufffd\u0000\ufffd\u0014\ufffd\ufffd\u001f\tK,Pb/\ufffd\ufffdoP\u0005~/",
+      "explanation": "Tool parameters are crafted to achieve unintended or unsafe behavior. Parameter abuse can bypass intended safety checks (e.g. shell=True, --force, dangerous glob patterns).",
+      "remediation": "Validate all tool parameters against an allowlist. Reject dangerous parameter values (shell=True, --force, -rf /) and use safe defaults.",
+      "code_snippet": "z}+\u0001\ufffd{\ufffdO\ufffd\ufffd\u0000\ufffd]\n\u0010\ufffd\u0017~\u064a= \ufffd5\u0000<@\u007f\ufffd\ufffd\ufffd\n\ufffd\ufffd\u00a6\u00b1\ufffd\ufffd\u06f7W\u05ef.\ufffd\ufffd_\ufffd\ufffd9P\ufffd^\ufffd\ufffd\ufffd\ufffd\u0016L3\u02a2W\ufffd<\ufffd\ufffdvt\ufffd\ufffd9\ufffdoK\ufffd\n\ufffdb-/\u0016\ufffd\ufffd,\ufffdU\u0006\u007f\ufffd\ufffd\n\ufffd8\ufffdvB?\ufffdW\ufffd\ufffd\ufffd\u07ecHh\ufffd\ufffdob\ufffd\ufffd{\ufffd~\ufffd\ufffd\ufffd\ufffd\ufffd\u0794eQ\u0012d\ufffd\u0004\ufffd\ufffd\ufffd\ufffdax\ufffd\ufffd\u0017\ufffd\ufffd\ufffdAB\ufffd\ufffdH\ufffd\ufffdj\ufffd\ufffd>\u0012`\ufffdx\u63c9\ufffd\\p\u04d4e\ufffd\ufffd\u001b\ufffdX\ufffdEL\ufffd\ufffd\ufffdl\ufffd\u0013\u001a=\u0017$>\nvJ\ufffd\n\ufffd\ufffd\u0001Q\ufffdVa\ufffd@F\u000e-\ufffd'\u0014\u0012{",
+      "intent": null
+    },
+    {
+      "id": "TM1",
+      "category": "Tool Misuse",
+      "pattern": "Tool Parameter Abuse",
+      "severity": "HIGH",
+      "confidence": 0.85,
+      "location": {
+        "file": "odc-canvas-v1.3.1.skill",
+        "start_line": 106,
+        "end_line": null
+      },
+      "finding": "rME\ufffdq\ufffd\ufffd\u0019\ufffd\ufffdj\ufffd\u0006%7\ufffd\ufffd:9\ufffd\ufffdf\u0017\u0019V\\\ufffd\ufffd\u0000\ufffd\u0014\ufffd\ufffd\u001f\tK,Pb/\ufffd\ufffdoP\u0005~/",
+      "explanation": "Tool parameters are crafted to achieve unintended or unsafe behavior. Parameter abuse can bypass intended safety checks (e.g. shell=True, --force, dangerous glob patterns).",
+      "remediation": "Validate all tool parameters against an allowlist. Reject dangerous parameter values (shell=True, --force, -rf /) and use safe defaults.",
+      "code_snippet": "\ufffd<-\ufffdU\ufffd\u001f\ufffdF\ufffd\ufffd\ufffd\ufffdC\ufffdN\ufffd\ufffd7\ufffd\t\ufffdKM\ufffd.\ufffd\"[\ufffd\ufffd\n\ufffd\ufffd\u0010\ufffdQ*\ufffd\ufffd\u9574\ufffdxv\u0001\u0011p3\ufffd\u04e4\ufffd\ufffd*\u07f7}\ufffdD\u0013\ufffd\n\n\ufffdE\ufffd\u007f\ufffdc\ufffd*^\ufffd\ufffd\ufffd[\ufffd\ufffd\u001bi\u0011\ufffd}`e\ufffd,C\u0277\u6448*>\n\ufffd\u0006\u0014oL\ufffd\ufffd/\ufffd)\ufffd\ufffd\ufffd\u0003\n\ufffd\ufffd\n\u0352d\ufffd4N\ufffd1\u0007q0\ufffdC\ufffd\ufffd \ufffd\ufffdT\u0019",
+      "intent": null
+    },
+    {
+      "id": "TM1",
+      "category": "Tool Misuse",
+      "pattern": "Tool Parameter Abuse",
+      "severity": "HIGH",
+      "confidence": 0.85,
+      "location": {
+        "file": "odc-canvas-v1.4.0/odc-canvas-v1.4.0.zip",
+        "start_line": 934,
+        "end_line": null
+      },
+      "finding": "Rmz\ufffd\ufffd\f\ufffd\ufffd\ufffdH[\u0012\ufffd>\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd\ufffdh\u001d\ufffd/\n",
+      "explanation": "Tool parameters are crafted to achieve unintended or unsafe behavior. Parameter abuse can bypass intended safety checks (e.g. shell=True, --force, dangerous glob patterns).",
+      "remediation": "Validate all tool parameters against an allowlist. Reject dangerous parameter values (shell=True, --force, -rf /) and use safe defaults.",
+      "code_snippet": "Xa:\u0000W\ufffd\ufffdr\ufffd<v\ufffd\ufffd\ufffd\ufffdp\ufffd\ufffd\ufffd0 \u05e2\ufffd\u0000 \ufffd\ufffd\u0001\u0005QPb\ufffd\n)\ufffd\ufffd\ud961\udd91\ufffda\ufffdX\n\ufffd\ufffd`\ueb57}\ufffdR\ufffdm\ufffd\ufffdpx4N\ufffd\ufffdL\ufffd\u001a\ufffd:@\n\ufffd\ufffdJ\ufffd\ufffd\"\ufffd\ufffd\u001a\u0001u\ufffd\ufffd\ufffd\ufffdV\nRZ\udbbb\udee3\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd{L,n\ufffd\"x3\ufffd\n@\ufffd\ufffd\u0773\ufffd\ufffd\ufffd\u001a\\\ufffd\u0002[\ufffd +JCn\ufffdE\ufffd|%JF\ufffd\ufffd\u001a\ufffd%\ufffd\ufffd\n\ufffd \ufffd\u0017O\ufffdD\ufffdf\ufffduCP\u02930\ufffd\ufffdF\ufffd\ufffdZ\ufffd\ufffdA\ufffd\ufffd\ufffd\ufffdJ\ufffd.\ufffd\ufffd\u06da\ufffd'\ufffd\u062aZ\ufffdj\u001b\ufffd\ufffd\u0017\ufffd@\ufffd\u01c8\ufffddE\ufffd\u0013\ufffd\ufffdg\ufffdL\"\u0086(v\ufffd\ufffd\ufffdp\ufffd@+c\ufffdz\ufffd\ufffd \u0012wP\ufffd\ufffd5\ufffd\ufffd\b'\u007fM\ufffd\ufffd",
+      "intent": null
+    },
+    {
+      "id": "TM1",
+      "category": "Tool Misuse",
+      "pattern": "Tool Parameter Abuse",
+      "severity": "HIGH",
+      "confidence": 0.85,
+      "location": {
+        "file": "odc-canvas.zip",
+        "start_line": 98,
+        "end_line": null
+      },
+      "finding": "rME\ufffdq\ufffd\ufffd\u0019\ufffd\ufffdj\ufffd\u0006%7\ufffd\ufffd:9\ufffd\ufffdf\u0017\u0019V\\\ufffd\ufffd\u0000\ufffd\u0014\ufffd\ufffd\u001f\tK,Pb/\ufffd\ufffdoP\u0005~/",
+      "explanation": "Tool parameters are crafted to achieve unintended or unsafe behavior. Parameter abuse can bypass intended safety checks (e.g. shell=True, --force, dangerous glob patterns).",
+      "remediation": "Validate all tool parameters against an allowlist. Reject dangerous parameter values (shell=True, --force, -rf /) and use safe defaults.",
+      "code_snippet": "\ufffd\u0015\t\ufffd\u0015\ufffd7\ufffd\ufffd6\u0002\ufffd\ufffd\ufffd\ufffd,\ufffd\ufffd\ufffd\ufffdz\u0012\ufffd\u02f1\ufffdf1\ufffdqCHy\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd\u0012E\u0002\ufffd\ufffd\ufffd\u0018\ufffd\ufffd\ufffd\ufffdx\ufffd\ufffd;E\u0000\ufffdZq}@\ufffdb\ufffdd[*/{\ufffd}\ufffd\ufffd\ufffd9\ufffd\u0536\ufffd\ufffd\ufffd\n\ufffdvl\ufffd\ufffd\u00ac\ufffd\ufffd\ufffd\ufffd\ufffd_\ufffda'\ufffd|\u000ejP:\ufffd\ufffd\ufffd_\ufffd%\u0018\ufffd\ufffd\ufffd\u0464\ufffdg\ufffdd$6`FuT\ufffdo\ufffd\ufffd&\ufffdB$\ufffd\u001b\ufffd#xC\u0019\nS=\n\ufffd!K\ufffdHd\ufffd\ufffd\ufffd\u0017%ic\ufffd\ufffd;l;i \u0475\ufffd\ufffd\ufffd\ufffd>\ufffd\ufffd\n\ufffd\ufffdG\ufffdjL\u0004\ufffd80iub\u0011,\ufffd+K\ufffd\ufffd\ufffdr!I\u0007k\u01fb\ufffd\ufffd\u0011E]\ufffdhK\ufffd\ufffd_\u0014\u0016\ufffd+\ufffd\ufffd>@\ufffd\ufffd\u01de\ufffd\n\ufffd\ufffd\u0000\ufffd.\n\ufffd",
+      "intent": null
+    }
+  ],
+  "metadata": {
+    "has_executable_scripts": true,
+    "skillspector_version": "2.1.3",
+    "llm_requested": false,
+    "llm_available": false
+  }
+}
