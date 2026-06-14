@@ -12,3 +12,14 @@ models:
   "gpt-5.4":
     context_length: 1000000
     max_output_tokens: 128000
+
+  # Local MLX (omlx) models. The omlx server hard-caps output at 16384 tokens,
+  # so prefer concise instruct models here over verbose reasoning models
+  # (whose chain-of-thought exhausts that budget and truncates the JSON).
+  "Qwen3.6-35B-A3B-8bit-MTPLX-Optimized-Speed":
+    context_length: 262144
+    max_output_tokens: 16384
+
+  "NVIDIA-Nemotron-3-Super-120B-A12B-8bit":
+    context_length: 262144
+    max_output_tokens: 16384

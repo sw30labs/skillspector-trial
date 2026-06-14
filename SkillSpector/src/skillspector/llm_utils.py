@@ -87,12 +87,21 @@ def get_chat_model(model: str | None = None) -> ChatOpenAI:
     resolved_key, resolved_base = _resolve_llm_credentials()
     model = model or MODEL_CONFIG["default"]
 
+    extra: dict = {}
+    if resolved_base and ("127.0.0.1" in resolved_base or "localhost" in resolved_base):
+        # Local MLX (omlx) endpoints: disable Qwen-style "thinking" so structured
+        # responses stay concise and fast. Chain-of-thought otherwise consumes the
+        # output budget and truncates the JSON. Gated to local hosts so it never
+        # reaches stock OpenAI/Anthropic, which reject the param.
+        extra["extra_body"] = {"chat_template_kwargs": {"enable_thinking": False}}
+
     return ChatOpenAI(
         model=model,
         base_url=resolved_base,
         api_key=resolved_key,
         max_tokens=get_max_output_tokens(model),
         timeout=120,
+        **extra,
     )
 
 

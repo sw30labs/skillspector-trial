@@ -28,11 +28,12 @@ to ``None`` for raw-string mode.
 from __future__ import annotations
 
 import asyncio
+import json
 from collections import defaultdict
 from dataclasses import dataclass, field
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 from skillspector.llm_utils import get_chat_model
 from skillspector.logging_config import get_logger
@@ -86,6 +87,24 @@ class LLMAnalysisResult(BaseModel):
     """Structured LLM response containing discovered findings."""
 
     findings: list[LLMFinding] = Field(default_factory=list)
+
+    @model_validator(mode="before")
+    @classmethod
+    def _coerce_bare_list(cls, v: object) -> object:
+        """Tolerate models that return a bare findings array.
+
+        Loosely-schema-enforcing endpoints (e.g. local MLX servers with
+        thinking disabled) sometimes emit ``[...]`` instead of the wrapper
+        object ``{"findings": [...]}``.  Coerce that shape here.
+        """
+        if isinstance(v, str):
+            try:
+                v = json.loads(v)
+            except (json.JSONDecodeError, TypeError):
+                return v
+        if isinstance(v, list):
+            return {"findings": v}
+        return v
 
 
 def estimate_tokens(text: str) -> int:
@@ -241,8 +260,15 @@ class LLMAnalyzerBase:
         self.model = model
         self._input_budget = get_max_input_tokens(model)
         self._llm = get_chat_model(model=model)
+        # Local MLX endpoints enforce the JSON grammar loosely, so structured
+        # output is occasionally malformed/incomplete. Retry recovers it, since
+        # the failures are nondeterministic.
         self._structured_llm = (
-            self._llm.with_structured_output(self.response_schema) if self.response_schema else None
+            self._llm.with_structured_output(
+                self.response_schema, method="json_schema", strict=True
+            ).with_retry(stop_after_attempt=4)
+            if self.response_schema
+            else None
         )
 
     # -- Batching -----------------------------------------------------------

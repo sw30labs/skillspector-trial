@@ -24,6 +24,8 @@ from __future__ import annotations
 
 import asyncio
 
+from pydantic import ValidationError
+
 from skillspector.constants import _SKILLSPECTOR_DEFAULT_MODEL
 from skillspector.llm_analyzer_base import LLMAnalyzerBase
 from skillspector.logging_config import get_logger
@@ -149,6 +151,10 @@ def node(state: SkillspectorState) -> AnalyzerNodeResponse:
         findings = analyzer.collect_findings(results)
         logger.info("%s: %d findings", ANALYZER_ID, len(findings))
         return {"findings": findings}
+    except ValidationError as exc:
+        # Malformed LLM response — degrade gracefully rather than crashing the graph.
+        logger.warning("%s: LLM returned malformed response: %s", ANALYZER_ID, exc)
+        return {"findings": []}
     except ValueError:
         raise
     except Exception as exc:

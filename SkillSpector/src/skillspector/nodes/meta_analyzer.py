@@ -26,7 +26,7 @@ import asyncio
 import json
 from typing import Literal
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, ValidationError, field_validator, model_validator
 
 from skillspector.llm_analyzer_base import (
     Batch,
@@ -86,6 +86,19 @@ class MetaAnalyzerResult(BaseModel):
 
     findings: list[MetaAnalyzerFinding] = Field(default_factory=list)
     overall_assessment: OverallAssessment | None = None
+
+    @model_validator(mode="before")
+    @classmethod
+    def _coerce_bare_list(cls, v: object) -> object:
+        """Tolerate a bare findings array from loosely-enforcing endpoints."""
+        if isinstance(v, str):
+            try:
+                v = json.loads(v)
+            except (json.JSONDecodeError, TypeError):
+                return v
+        if isinstance(v, list):
+            return {"findings": v}
+        return v
 
     @field_validator("overall_assessment", mode="before")
     @classmethod
@@ -400,6 +413,13 @@ def meta_analyzer(state: SkillspectorState) -> MetaAnalyzerResponse:
             len(filtered),
         )
         return {"filtered_findings": filtered}
+    except ValidationError as e:
+        # Malformed LLM output (common with loosely-enforcing local endpoints).
+        # ValidationError subclasses ValueError, so without this it would hit the
+        # re-raise below and abort the scan. Fall back to keeping all static
+        # findings — conservative, never a false negative.
+        logger.warning("LLM structured output invalid, using fallback: %s", e)
+        return {"filtered_findings": _fallback_filtered(findings)}
     except ValueError:
         raise
     except Exception as e:
