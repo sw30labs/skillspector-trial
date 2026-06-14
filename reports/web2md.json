@@ -2,10 +2,10 @@
   "skill": {
     "name": "web-to-md-js",
     "source": "~/Code/SKILLS/web2md",
-    "scanned_at": "2026-06-12T10:52:58.837280+00:00"
+    "scanned_at": "2026-06-14T03:31:11.822747+00:00"
   },
   "risk_assessment": {
-    "score": 0,
+    "score": 10,
     "severity": "LOW",
     "recommendation": "SAFE"
   },
@@ -18,11 +18,29 @@
       "size_bytes": 5669
     }
   ],
-  "issues": [],
+  "issues": [
+    {
+      "id": "SSD-3",
+      "category": null,
+      "pattern": null,
+      "severity": "MEDIUM",
+      "confidence": 0.85,
+      "location": {
+        "file": "SKILL.md",
+        "start_line": 62,
+        "end_line": 70
+      },
+      "finding": null,
+      "explanation": "The skill instructs users to export session cookies for high-value sites (LinkedIn, Substack) and save them in plaintext JSON format (`cookies.json`) to the local filesystem. While the skill claims to only use them for a single run, this practice creates significant security risks:\n1. **Persistence Risk**: If the automated process crashes or hangs, the file remains on disk, potentially leaking valid session tokens that allow full account takeover.\n2. **Lack of Sanitization**: The instructions do not specify secure file permissions (e.g., `0600`) or cleanup mechanisms to ensure the file is deleted after use.\n3. **Log/History Leakage**: Without strict controls, the content of `cookies.json` or the command line usage might be inadvertently logged by shell history, CI/CD systems, or monitoring tools.\n4. **Scope Creep**: The skill encourages handling authentication tokens for multiple different services, increasing the attack surface if one service's token is compromised.",
+      "remediation": "1. **Avoid Storing Raw Cookies**: Instead of using a static `cookies.json` file, implement an ephemeral authentication flow where the browser context is created, cookies are injected into the browser's memory (not a file), and the context is destroyed immediately after the scrape.\n2. **Use Secure Storage**: If cookies must be stored, use the system's keychain or a secure secrets manager with encryption at rest.\n3. **Enforce Cleanup**: Ensure the script explicitly deletes any temporary cookie files in a `finally` block or trap.\n4. **File Permissions**: If local files are unavoidable, strictly enforce `chmod 600` on the cookie file before writing and ensure no other users/Processes can read it.",
+      "code_snippet": null,
+      "intent": null
+    }
+  ],
   "metadata": {
     "has_executable_scripts": false,
     "skillspector_version": "2.1.3",
-    "llm_requested": false,
-    "llm_available": false
+    "llm_requested": true,
+    "llm_available": true
   }
 }

@@ -2,10 +2,10 @@
   "skill": {
     "name": "idea-buddy",
     "source": "~/Code/SKILLS/idea-buddy",
-    "scanned_at": "2026-06-12T10:52:31.961941+00:00"
+    "scanned_at": "2026-06-14T02:33:11.498090+00:00"
   },
   "risk_assessment": {
-    "score": 0,
+    "score": 5,
     "severity": "LOW",
     "recommendation": "SAFE"
   },
@@ -18,11 +18,29 @@
       "size_bytes": 6887
     }
   ],
-  "issues": [],
+  "issues": [
+    {
+      "id": "SQP-2",
+      "category": null,
+      "pattern": null,
+      "severity": "LOW",
+      "confidence": 0.8,
+      "location": {
+        "file": "SKILL.md",
+        "start_line": 83,
+        "end_line": 90
+      },
+      "finding": null,
+      "explanation": "The skill explicitly instructs the agent to 'Write the three output files... to the user's current working folder'. This is a file-write operation. The risk is that if the agent is executed in a directory where the user does not expect file creation (e.g., a system directory, a project root with version control, or a shared workspace), it may overwrite existing files, clutter the directory, or commit unwanted artifacts to version control if the working directory is tracked. While the file names (`candidates.md`, etc.) seem benign, the lack of a confirmation step or explicit warning that files are being created in the *current* working directory violates the principle of least surprise and safety for file-modifying operations. If the user's current working directory is `/` or another critical location, this could be problematic, though likely just annoying.",
+      "remediation": "1. Add a mandatory confirmation step before writing files: 'Are you sure you want to write candidates.md, top_picks.md, and workflow_log.md to your current working directory?'.\n2. Alternatively, specify a dedicated subdirectory for outputs (e.g., `./idea-buddy-output/`) to prevent cluttering the current directory.\n3. Include a warning in the skill description: 'Warning: This skill creates new files in your current working directory. Ensure you are in the correct location before running.'",
+      "code_snippet": null,
+      "intent": null
+    }
+  ],
   "metadata": {
     "has_executable_scripts": false,
     "skillspector_version": "2.1.3",
-    "llm_requested": false,
-    "llm_available": false
+    "llm_requested": true,
+    "llm_available": true
   }
 }

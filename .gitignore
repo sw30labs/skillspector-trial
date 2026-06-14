@@ -11,6 +11,9 @@ __pycache__/
 # OS cruft
 .DS_Store
 
+# Scratch output dir for ad-hoc/LLM scan runs (not for publishing).
+reports-llm/
+
 # Scan artifacts are regenerable via scripts/scan-skills.sh.
 # Kept in the repo as a snapshot by default; uncomment to stop tracking them:
 # reports/

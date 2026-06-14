@@ -21,7 +21,7 @@ set -euo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJ="$(dirname "$HERE")"
 SPECTOR="$PROJ/SkillSpector"
-REPORTS="$PROJ/reports"
+REPORTS="${REPORTS_DIR:-$PROJ/reports}"
 
 SKILLS_DIR="${1:-$HOME/Code/SKILLS}"
 LLM_FLAG="--no-llm"
@@ -57,9 +57,14 @@ for dir in "$SKILLS_DIR"/*/; do
   echo "[$count] scanning $name ..."
   # NOTE: skillspector exits non-zero when a skill is high-risk (like a linter),
   # so we judge success by whether the report file was written, not exit code.
-  run scan "$dir" $LLM_FLAG --format json     --output "$REPORTS/$name.json" >/dev/null 2>&1 || true
-  run scan "$dir" $LLM_FLAG --format markdown  --output "$REPORTS/$name.md"   >/dev/null 2>&1 || true
-  [ -s "$REPORTS/$name.json" ] || echo "    WARNING: no report produced for $name"
+  # Capture per-skill stderr so analyzer failures are diagnosable (not /dev/null).
+  run scan "$dir" $LLM_FLAG --format json     --output "$REPORTS/$name.json" >/dev/null 2>"$REPORTS/$name.err" || true
+  # The markdown pass re-runs the entire analysis just to reformat. With the LLM
+  # stage that doubles cost, so SKIP_MARKDOWN=1 skips it (JSON + summary suffice).
+  if [ -z "${SKIP_MARKDOWN:-}" ]; then
+    run scan "$dir" $LLM_FLAG --format markdown  --output "$REPORTS/$name.md"   >/dev/null 2>&1 || true
+  fi
+  [ -s "$REPORTS/$name.json" ] || echo "    WARNING: no report produced for $name (see $name.err)"
 done
 
 echo

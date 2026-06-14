@@ -1,13 +1,27 @@
 {
-  "scanned_at": "2026-06-12T10:53:04.704334+00:00",
+  "scanned_at": "2026-06-14T03:40:55.262770+00:00",
   "skills_dir": "~/Code/SKILLS",
-  "n_skills": 6,
+  "n_skills": 5,
   "totals": {
-    "issues": 2,
-    "with_scripts": 3,
-    "not_safe": 0
+    "issues": 7,
+    "with_scripts": 2,
+    "not_safe": 1
   },
   "skills": [
+    {
+      "skill": "manage-portfolio",
+      "score": 45,
+      "severity": "MEDIUM",
+      "recommendation": "CAUTION",
+      "n_issues": 3,
+      "by_severity": {
+        "LOW": 2,
+        "HIGH": 1
+      },
+      "has_scripts": true,
+      "components": 3,
+      "report": "manage-portfolio.json"
+    },
     {
       "skill": "create-graph-api",
       "score": 13,
@@ -22,61 +36,43 @@
       "report": "create-graph-api.json"
     },
     {
-      "skill": "manage-portfolio",
-      "score": 13,
+      "skill": "web-to-md-js",
+      "score": 10,
       "severity": "LOW",
       "recommendation": "SAFE",
       "n_issues": 1,
       "by_severity": {
         "MEDIUM": 1
       },
-      "has_scripts": true,
-      "components": 3,
-      "report": "manage-portfolio.json"
+      "has_scripts": false,
+      "components": 1,
+      "report": "web2md.json"
     },
     {
       "skill": "article-qa",
-      "score": 0,
+      "score": 5,
       "severity": "LOW",
       "recommendation": "SAFE",
-      "n_issues": 0,
-      "by_severity": {},
+      "n_issues": 1,
+      "by_severity": {
+        "LOW": 1
+      },
       "has_scripts": false,
       "components": 2,
       "report": "article-qa-skill.json"
     },
     {
       "skill": "idea-buddy",
-      "score": 0,
+      "score": 5,
       "severity": "LOW",
       "recommendation": "SAFE",
-      "n_issues": 0,
-      "by_severity": {},
+      "n_issues": 1,
+      "by_severity": {
+        "LOW": 1
+      },
       "has_scripts": false,
       "components": 1,
       "report": "idea-buddy.json"
-    },
-    {
-      "skill": "tab-newsletter",
-      "score": 0,
-      "severity": "LOW",
-      "recommendation": "SAFE",
-      "n_issues": 0,
-      "by_severity": {},
-      "has_scripts": true,
-      "components": 9,
-      "report": "tab-newsletter.json"
-    },
-    {
-      "skill": "web-to-md-js",
-      "score": 0,
-      "severity": "LOW",
-      "recommendation": "SAFE",
-      "n_issues": 0,
-      "by_severity": {},
-      "has_scripts": false,
-      "components": 1,
-      "report": "web2md.json"
     }
   ]
 }

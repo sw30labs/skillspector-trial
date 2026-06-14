@@ -2,12 +2,12 @@
   "skill": {
     "name": "manage-portfolio",
     "source": "~/Code/SKILLS/manage-portfolio",
-    "scanned_at": "2026-06-12T10:52:33.191947+00:00"
+    "scanned_at": "2026-06-14T02:34:44.154718+00:00"
   },
   "risk_assessment": {
-    "score": 13,
-    "severity": "LOW",
-    "recommendation": "SAFE"
+    "score": 45,
+    "severity": "MEDIUM",
+    "recommendation": "CAUTION"
   },
   "components": [
     {
@@ -34,19 +34,53 @@
   ],
   "issues": [
     {
-      "id": "LP3",
-      "category": "MCP Least Privilege",
+      "id": "SDI-4",
+      "category": null,
       "pattern": null,
-      "severity": "MEDIUM",
-      "confidence": 0.7,
+      "severity": "LOW",
+      "confidence": 0.85,
       "location": {
         "file": "SKILL.md",
-        "start_line": 1,
-        "end_line": null
+        "start_line": 295,
+        "end_line": 309
       },
       "finding": null,
-      "explanation": "Without declared permissions the skill's intent is opaque and cannot be validated.",
-      "remediation": "Add a 'permissions' field to SKILL.md listing the capabilities this skill requires.",
+      "explanation": "The skill contains a **Code Injection/Arbitrary Code Execution** vulnerability. The `ADD`, `DELETE`, and `AMEND` operations rely on generating and executing ad-hoc Python snippets using `python3 -c`. \n\n1. **Injection via User Input**: The `ADD` operation snippet includes `<escaped_json>`. If the input data for the new project (e.g., `project_id`, `tags`, `source` fields) is not strictly validated and escaped before being interpolated into the Python string, an attacker can inject malicious Python code. For example, setting `tags` to `[test'); import os; os.system('rm -rf /')#]` could break the string context and execute shell commands.\n2. **Insecure `sys.path` Manipulation**: The snippets prepend `<dashboard_root>` to `sys.path`. If the user or an attacker controls the path (e.g., via the `repository_path` or other config that might influence the root detection, though here it seems hardcoded from context), they could manipulate imports to load malicious modules.\n3. **SQL Injection/ORM Abuse**: While the skill claims to use 'safe cascading deletes' via ORM, the `DELETE` operation uses `session.delete(record)` directly. While `record` is fetched by ID (likely safe from injection if ID is validated), the use of dynamic code execution for DB writes bypasses any potential wrapper services or hooks that might provide additional auditing or validation layers. The primary risk remains the Python code injection via the ad-hoc execution blocks.\n\nThe context makes this dangerous because it grants write access to the database and file system via system commands triggered by user input processed by the agent.",
+      "remediation": "1. **Eliminate Ad-hoc Code Execution**: Replace all `python3 -c` snippets with calls to dedicated, pre-audited Python scripts (e.g., `scripts/add_project.py`, `scripts/delete_project.py`). Pass arguments via `argv` or stdin, not by embedding them in code strings.\n2. **Strict Input Validation**: If embedding values in code strings is unavoidable (not recommended), use strict library-based escaping (e.g., `json.dumps` for JSON, or specific string escaping for the shell/python context) and validate all inputs against a strict schema (e.g., using Pydantic) before interpolation.\n3. **Use Subprocess with List**: Use `subprocess.run(['python', 'script.py', arg1, arg2], check=True)` instead of string concatenation for command building to prevent shell injection.",
+      "code_snippet": null,
+      "intent": null
+    },
+    {
+      "id": "SQP-2",
+      "category": null,
+      "pattern": null,
+      "severity": "HIGH",
+      "confidence": 0.9,
+      "location": {
+        "file": "references/project_schema.md",
+        "start_line": 111,
+        "end_line": 113
+      },
+      "finding": null,
+      "explanation": "The documentation explicitly describes a deletion workflow that triggers a cascade destroying `projects`, `runs`, `artifacts`, and `anomalies`. While the intent is likely benign (documenting correct ORM usage to prevent orphaned records and raw SQL errors), the failure to warn users about the **irreversible and destructive nature** of this operation is a significant security/usability flaw. In a monitoring system, `runs` and `artifacts` often contain critical historical data. A user invoking 'delete a project' without understanding they are wiping all historical execution data and anomaly records may cause catastrophic data loss. The documentation treats this as a standard feature rather than a high-risk destructive action requiring confirmation or explicit warning.",
+      "remediation": "1. Add a prominent warning block (e.g., '\u26a0\ufe0f WARNING: Destructive Operation') before describing the deletion process. 2. Explicitly list what data will be permanently lost (project config, all run histories, artifacts, and anomalies). 3. Recommend implementing a 'soft delete' or confirmation step in the UI/skill logic before executing the ORM delete.",
+      "code_snippet": null,
+      "intent": null
+    },
+    {
+      "id": "SQP-2",
+      "category": null,
+      "pattern": null,
+      "severity": "LOW",
+      "confidence": 0.9,
+      "location": {
+        "file": "scripts/portfolio_inspector.py",
+        "start_line": 119,
+        "end_line": 125
+      },
+      "finding": null,
+      "explanation": "The script reads the `config_json` column from the `projects` table in the SQLite database and includes it directly in the JSON output without filtering or masking. In many dashboard/monitoring contexts, `config_json` serves as the 'runtime source of truth' and may contain sensitive configuration details such as API keys, database connection strings with credentials, or internal endpoint URLs. Exposing this data in a JSON response intended for general portfolio viewing constitutes a potential **Information Leak** or **Sensitive Data Exposure** vulnerability. An attacker with access to this skill/output could extract these secrets.",
+      "remediation": "1. Audit the contents of the `config_json` column to determine if it contains secrets. 2. If secrets are present, either: a) Store secrets separately from the dashboard config (best practice), or b) Implement strict allow-listing or masking in the `_read_database` function to exclude known secret keys (e.g., keys matching `*password*`, `*key*`, `*secret*`, `*token*`) from the output. 3. Add explicit comments warning downstream consumers that the output may contain sensitive data if not masked.",
       "code_snippet": null,
       "intent": null
     }
@@ -54,7 +88,7 @@
   "metadata": {
     "has_executable_scripts": true,
     "skillspector_version": "2.1.3",
-    "llm_requested": false,
-    "llm_available": false
+    "llm_requested": true,
+    "llm_available": true
   }
 }

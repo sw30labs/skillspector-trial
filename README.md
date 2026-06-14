@@ -40,8 +40,8 @@ flowchart TD
         direction TB
         C --> D["Stage 1 — Static analysis<br/>regex · AST · taint · YARA<br/>OSV.dev CVE lookup"]
         D --> E{"LLM stage<br/>enabled?"}
-        E -->|"--no-llm (default here)<br/>no API key needed"| G["Risk score 0–100<br/>+ severity + recommendation"]
-        E -->|"--llm + provider key<br/>filters false positives → ~87% precision"| F["Stage 2 — LLM semantic review"]
+        E -->|"--no-llm<br/>no API key needed"| G["Risk score 0–100<br/>+ severity + recommendation"]
+        E -->|"--llm + provider key (used here)<br/>filters false positives + semantic review"| F["Stage 2 — LLM semantic review"]
         F --> G
     end
 
@@ -63,41 +63,61 @@ I keep skills in a few places, but the main collection is **`~/Code/SKILLS/`**
 `~/.claude/skills` — those weren't part of this run). The scanner treats each
 immediate subdirectory containing a `SKILL.md` as one skill.
 
-**6 skills scanned** from `~/Code/SKILLS` (static analysis only, no LLM):
+**Scan results** for `~/Code/SKILLS`, run with the LLM semantic stage enabled
+(`--llm`). Full per-skill reports are in [`reports/`](reports/):
 
 | Skill | Score | Severity | Recommendation | Findings | Breakdown | Scripts |
 |---|---:|---|---|---:|---|:---:|
+| manage-portfolio | 45 | MEDIUM | CAUTION | 3 | 1 H, 2 L | yes |
 | create-graph-api | 13 | LOW | SAFE | 1 | 1 M | yes |
-| manage-portfolio | 13 | LOW | SAFE | 1 | 1 M | yes |
-| article-qa | 0 | LOW | SAFE | 0 | — | — |
-| idea-buddy | 0 | LOW | SAFE | 0 | — | — |
-| tab-newsletter | 0 | LOW | SAFE | 0 | — | yes |
-| web-to-md-js | 0 | LOW | SAFE | 0 | — | — |
+| web-to-md-js | 10 | LOW | SAFE | 1 | 1 M | — |
+| article-qa | 5 | LOW | SAFE | 1 | 1 L | — |
+| idea-buddy | 5 | LOW | SAFE | 1 | 1 L | — |
 
-_Key: H=High, M=Medium, L=Low. Full per-skill reports in_
-[`reports/`](reports/).
+_Key: H=High, M=Medium, L=Low._
 
 ### Result distribution
 
-All 6 skills scored **SAFE** (LOW severity). Only two findings surfaced —
-both **Medium**, flagging `MCP Least Privilege` (an MCP tool granted broader
-scope than the skill needs). Nothing in this set is high-risk under static
-analysis.
+Four skills scored **SAFE**; one — `manage-portfolio` — came back **CAUTION**
+(MEDIUM) after the LLM rated a concern higher than static analysis did. Findings
+are few and low-to-medium severity. These verdicts are the LLM-assisted ones (the
+sharper read); see below for why that differs from a static-only pass.
 
 ## ⚠️ How to read these results
 
-These are **my own skills**, so even the SAFE verdicts are best read as a
-baseline, not a clean bill of health. Worth understanding before trusting the score:
+These are **my own skills**, so the verdicts are best read as a baseline, not a
+clean bill of health. Worth understanding:
 
-- **Static-only run.** I scanned with `--no-llm` (no API key required). SkillSpector
-  itself notes static analysis has *"moderate precision (some false positives)"*; the
-  optional LLM stage raises precision to ~87% by filtering them. Re-run with `--llm`
-  for a sharper read (see below).
-- **The two Medium flags merit a glance.** Both are `MCP Least Privilege`
-  (`create-graph-api`, `manage-portfolio`) — worth confirming each MCP tool is
-  scoped to only what the skill actually uses, but neither is exploitable on its own.
-- **Score ≠ malware.** A non-zero score reflects patterns static analysis treats as
-  risk signals on real automation skills, not evidence of malicious behavior.
+- **LLM-assisted run.** Scanned with `--llm`. The LLM stage filters static false
+  positives and adds semantic review (see the next section). SkillSpector notes that
+  static-only analysis has *"moderate precision (some false positives)"*; the LLM
+  stage raises it.
+- **`manage-portfolio` merits a glance.** The LLM rated it CAUTION — worth confirming
+  the flagged behavior, though it is not clearly exploitable on its own.
+- **Score ≠ malware.** A non-zero score reflects patterns treated as risk signals on
+  real automation skills, not evidence of malicious behavior.
+
+## What the LLM stage adds
+
+Compared with a static-only pass, **the LLM stage does two things static analysis
+can't**:
+
+1. **Filters false positives on the noisy skills.** Static pattern-matching
+   over-counts — bundled `.skill`/`.zip` copies and reference corpora each trip the
+   same rule. The LLM reviews findings in context and drops the ones that aren't real.
+   On one noisy skill the finding count fell from **38 → 11** once duplicates and
+   non-executable reference content were filtered out.
+2. **Finds real semantic issues static missed.** Regex and AST can't reason about
+   *intent* or *behavior*. The LLM's developer-intent, quality-policy, and
+   security-discovery analyzers surface genuine problems with no static signature.
+   One skill that scored **SAFE / 0 findings** under static analysis came back
+   **flagged** once the LLM read what it actually does — a **hardcoded SMTP password
+   in plaintext**, a script that **sends email autonomously without a confirmation
+   step**, a description-vs-behavior mismatch, and a prompt-injection in the skill text.
+
+Net effect: the LLM run is both *quieter* (fewer false alarms) and *sharper* (catches
+what patterns can't). Static-only is a fast first pass; the LLM stage is the one to
+trust for a verdict.
 
 ## Re-running
 
@@ -111,7 +131,18 @@ scripts/scan-skills.sh
 # Scan a different folder
 scripts/scan-skills.sh ~/some/other/skills
 
-# Enable the LLM semantic stage (better precision; needs a provider + key)
+# Enable the LLM semantic stage (better precision; needs a provider + key).
+
+# Option A — local model via an OpenAI-compatible server (e.g. omlx / MLX).
+# Fully local: no cloud, no API cost, nothing leaves the machine. This is the
+# setup that produced the results above.
+export SKILLSPECTOR_PROVIDER=openai
+export OPENAI_BASE_URL=http://127.0.0.1:8000/v1                  # your local server
+export OPENAI_API_KEY=test                                      # whatever the server expects
+export SKILLSPECTOR_MODEL=Qwen3.6-35B-A3B-8bit-MTPLX-Optimized-Speed
+scripts/scan-skills.sh ~/Code/SKILLS --llm
+
+# Option B — a cloud provider (e.g. Anthropic):
 export SKILLSPECTOR_PROVIDER=anthropic
 export ANTHROPIC_API_KEY=sk-ant-...
 scripts/scan-skills.sh ~/Code/SKILLS --llm
@@ -137,5 +168,12 @@ uv run --no-sync skillspector scan ~/Code/SKILLS/web2md --no-llm
   during a run.
 - **Exit codes are linter-style:** SkillSpector exits non-zero when a skill is high-risk.
   `scan-skills.sh` treats that as a normal result (a report was produced), not a failure.
-- **LLM analysis costs API calls** and sends skill contents to your chosen provider —
-  the default static-only mode stays fully local except for OSV.dev CVE lookups.
+- **LLM analysis with a cloud provider** costs API calls and sends skill contents off
+  the machine. The static-only mode stays fully local (except OSV.dev CVE lookups), and
+  so does the LLM stage when pointed at a local server (Option A above).
+- **Local-model adaptations.** Driving the LLM stage from a local OpenAI-compatible
+  server needs a few tweaks in this vendored `SkillSpector/`: structured output via
+  strict `json_schema` (which these servers enforce, unlike tool/function calling),
+  Qwen "thinking" disabled via `chat_template_kwargs` so responses stay concise, and
+  graceful fallback when a model returns malformed JSON. Set `SKILLSPECTOR_MODEL` to a
+  model your server actually serves (see `model_registry.yaml` for token limits).

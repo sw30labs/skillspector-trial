@@ -2,7 +2,7 @@
   "skill": {
     "name": "create-graph-api",
     "source": "~/Code/SKILLS/create-graph-api",
-    "scanned_at": "2026-06-12T10:52:03.924522+00:00"
+    "scanned_at": "2026-06-14T01:55:06.061027+00:00"
   },
   "risk_assessment": {
     "score": 13,
@@ -69,19 +69,19 @@
   ],
   "issues": [
     {
-      "id": "LP3",
-      "category": "MCP Least Privilege",
+      "id": "SQP-2",
+      "category": null,
       "pattern": null,
       "severity": "MEDIUM",
-      "confidence": 0.7,
+      "confidence": 0.9,
       "location": {
         "file": "SKILL.md",
-        "start_line": 1,
-        "end_line": null
+        "start_line": 2,
+        "end_line": 3
       },
       "finding": null,
-      "explanation": "Without declared permissions the skill's intent is opaque and cannot be validated.",
-      "remediation": "Add a 'permissions' field to SKILL.md listing the capabilities this skill requires.",
+      "explanation": "This is a TRUE VULNERABILITY. The skill executes arbitrary code from the target project during Phase 7 ('Hard freeze'). Specifically, it runs `python -m graph_api.freeze`, which imports every user-defined factory module provided by the user. If the target project contains malicious code, compromised dependencies, or even just broken imports that raise exceptions in `__init__.py` or global scope, the agent's execution environment will run that code. This can lead to:\n1. **Code Execution**: Arbitrary Python code from the target repo is executed within the agent's context.\n2. **Data Exfiltration**: Malicious code in the target could read environment variables, secrets, or other sensitive data from the agent's environment.\n3. **Denial of Service**: If the code hangs or crashes, it may disrupt the agent's workflow.\n\nThe risk is amplified because the skill operates in a 'source' context where users might be pointing to repositories with unknown or third-party code. While the skill asks for user confirmation on *which* factories to expose, it does not warn the user that *importing* these modules will execute their global code.",
+      "remediation": "1. **Add Prominent Warnings**: The skill description and Phase 3 confirmation must explicitly warn the user that 'Hard freezing' will execute the target project's code, including global imports and side effects.\n2. **Sandboxing**: If possible, run the freeze step in an isolated subprocess with restricted capabilities (e.g., `sudo` restriction, network access disabled if not needed, though this is hard for imports).\n3. **Alternative Approach**: Consider a static analysis approach for the snapshot that does not require importing the modules (parsing AST to extract structure without executing), although this is technically difficult for LangGraph compiled graphs which often have complex runtime dependencies.\n4. **User Consent**: Make the execution of the freeze step a distinct, explicit step where the user acknowledges the risk of running arbitrary code.",
       "code_snippet": null,
       "intent": null
     }
@@ -89,7 +89,7 @@
   "metadata": {
     "has_executable_scripts": true,
     "skillspector_version": "2.1.3",
-    "llm_requested": false,
-    "llm_available": false
+    "llm_requested": true,
+    "llm_available": true
   }
 }
