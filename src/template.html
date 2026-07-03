@@ -47,76 +47,79 @@
   <main id="main" class="app-main" role="main">
     <!-- Views are toggled by ui.js; all live here -->
 
-    <!-- Workbench: intake + scanning live side by side while a scan runs -->
+    <!-- WORKBENCH: drop zone + scanner instrument panel, always paired.
+         The scanner idles in standby and lights up while a scan runs. -->
     <div class="workbench" id="workbench">
+      <div class="workbench-row">
 
-    <!-- DROP / INTAKE VIEW -->
-    <section id="view-intake" class="view view-intake" aria-label="Upload a skill to scan">
-      <div class="intake-inner">
-        <div
-          id="dropZone"
-          class="dropzone"
-          role="button"
-          tabindex="0"
-          aria-label="Drop a skill folder, .zip, or .skill file here, or press Enter to browse"
-        >
-          <div class="dropzone-scanline" aria-hidden="true"></div>
-          <div class="dropzone-content">
-            <span class="dz-icon" aria-hidden="true">
-              <svg viewBox="0 0 48 48" width="52" height="52"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M24 6v22"/><path d="M15 19l9 9 9-9"/><path d="M8 32v6a4 4 0 0 0 4 4h24a4 4 0 0 0 4-4v-6"/></g></svg>
-            </span>
-            <p class="dz-title">Drop a skill to inspect</p>
-            <p class="dz-sub">A folder, a <code>.zip</code>, or a <code>.skill</code> bundle</p>
-            <p class="dz-hint">Runs entirely in your browser. Nothing is uploaded.</p>
+        <!-- DROP / INTAKE -->
+        <section id="view-intake" class="view view-intake" aria-label="Upload a skill to scan">
+          <div class="intake-inner">
+            <div
+              id="dropZone"
+              class="dropzone"
+              role="button"
+              tabindex="0"
+              aria-label="Drop a skill folder, .zip, or .skill file here, or press Enter to browse"
+            >
+              <div class="dropzone-scanline" aria-hidden="true"></div>
+              <div class="dropzone-content">
+                <span class="dz-icon" aria-hidden="true">
+                  <svg viewBox="0 0 48 48" width="52" height="52"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M24 6v22"/><path d="M15 19l9 9 9-9"/><path d="M8 32v6a4 4 0 0 0 4 4h24a4 4 0 0 0 4-4v-6"/></g></svg>
+                </span>
+                <p class="dz-title">Drop a skill to inspect</p>
+                <p class="dz-sub">A folder, a <code>.zip</code>, or a <code>.skill</code> bundle</p>
+                <p class="dz-hint">Runs entirely in your browser. Nothing is uploaded.</p>
+              </div>
+            </div>
+
+            <div class="intake-buttons">
+              <button type="button" class="btn btn-ghost" id="pickFolderBtn">
+                <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M10 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-8l-2-2z"/></svg>
+                Choose folder
+              </button>
+              <button type="button" class="btn btn-ghost" id="pickZipBtn">
+                <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M6 2h9l5 5v13a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2zm7 1.5V8h4.5L13 3.5zM11 9h2v2h-2V9zm0 3h2v2h-2v-2zm0 3h2v3h-2v-3z"/></svg>
+                Choose .zip / .skill
+              </button>
+              <button type="button" class="btn btn-primary" id="demoBtn">
+                <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M8 5v14l11-7z"/></svg>
+                Scan demo skill
+              </button>
+            </div>
+
+            <!-- Hidden native inputs -->
+            <input type="file" id="folderInput" webkitdirectory directory multiple class="visually-hidden" tabindex="-1" aria-hidden="true" />
+            <input type="file" id="zipInput" accept=".zip,.skill,application/zip" multiple class="visually-hidden" tabindex="-1" aria-hidden="true" />
           </div>
-        </div>
+        </section>
 
-        <div class="intake-buttons">
-          <button type="button" class="btn btn-ghost" id="pickFolderBtn">
-            <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M10 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-8l-2-2z"/></svg>
-            Choose folder
-          </button>
-          <button type="button" class="btn btn-ghost" id="pickZipBtn">
-            <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M6 2h9l5 5v13a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2zm7 1.5V8h4.5L13 3.5zM11 9h2v2h-2V9zm0 3h2v2h-2v-2zm0 3h2v3h-2v-3z"/></svg>
-            Choose .zip / .skill
-          </button>
-          <button type="button" class="btn btn-primary" id="demoBtn">
-            <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M8 5v14l11-7z"/></svg>
-            Scan demo skill
-          </button>
-        </div>
-
-        <!-- Hidden native inputs -->
-        <input type="file" id="folderInput" webkitdirectory directory multiple class="visually-hidden" tabindex="-1" aria-hidden="true" />
-        <input type="file" id="zipInput" accept=".zip,.skill,application/zip" multiple class="visually-hidden" tabindex="-1" aria-hidden="true" />
-
-        <div class="intake-error" id="intakeError" role="alert" hidden></div>
-
-        <ul class="intake-legend" aria-label="What Skillspector checks">
-          <li><span class="legend-dot sev-critical" aria-hidden="true"></span> Prompt injection &amp; exfiltration</li>
-          <li><span class="legend-dot sev-high" aria-hidden="true"></span> Dangerous shell &amp; secrets</li>
-          <li><span class="legend-dot sev-medium" aria-hidden="true"></span> Quality &amp; hygiene</li>
-          <li><span class="legend-dot cap-dot" aria-hidden="true"></span> Capability surface</li>
-        </ul>
-      </div>
-    </section>
-
-    <!-- SCANNING VIEW -->
-    <section id="view-scanning" class="view view-scanning" aria-label="Scanning in progress" aria-live="polite" hidden>
-      <div class="scanner">
-        <div class="scanner-frame">
-          <div class="scanner-beam" aria-hidden="true"></div>
-          <div class="scanner-grid" aria-hidden="true"></div>
-          <div class="scanner-label">
-            <span class="scanner-title">Inspecting</span>
-            <span class="scanner-count" id="scanCount"></span>
+        <!-- SCANNER (standby ⇄ inspecting) -->
+        <section id="view-scanning" class="view view-scanning" aria-label="Scanner" aria-live="polite">
+          <div class="scanner">
+            <div class="scanner-frame">
+              <div class="scanner-beam" aria-hidden="true"></div>
+              <div class="scanner-grid" aria-hidden="true"></div>
+              <div class="scanner-label">
+                <span class="scanner-title" id="scanTitle">Standby</span>
+                <span class="scanner-count" id="scanCount">awaiting bundle</span>
+              </div>
+              <ul class="scanner-ticker" id="scanTicker" aria-hidden="true"></ul>
+              <p class="scanner-status" id="scanStatus">Drop a skill on the left — analysis runs locally.</p>
+            </div>
           </div>
-          <ul class="scanner-ticker" id="scanTicker" aria-hidden="true"></ul>
-        </div>
-        <p class="scanner-status" id="scanStatus">Reading bundle…</p>
-      </div>
-    </section>
+        </section>
 
+      </div><!-- /workbench-row -->
+
+      <div class="intake-error" id="intakeError" role="alert" hidden></div>
+
+      <ul class="intake-legend" aria-label="What Skillspector checks">
+        <li><span class="legend-dot sev-critical" aria-hidden="true"></span> Prompt injection &amp; exfiltration</li>
+        <li><span class="legend-dot sev-high" aria-hidden="true"></span> Dangerous shell &amp; secrets</li>
+        <li><span class="legend-dot sev-medium" aria-hidden="true"></span> Quality &amp; hygiene</li>
+        <li><span class="legend-dot cap-dot" aria-hidden="true"></span> Capability surface</li>
+      </ul>
     </div><!-- /workbench -->
 
     <!-- SUMMARY (MULTI-SKILL) VIEW -->

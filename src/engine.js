@@ -1465,6 +1465,7 @@ function scanOneSkill(rootPath, rootFiles) {
     if (
       b === ".DS_Store" ||
       b === "Thumbs.db" ||
+      /^\._/.test(b) || // AppleDouble resource-fork copies (._foo)
       /(^|\/)__pycache__\//.test(rel) ||
       /\.pyc$/.test(rel) ||
       /(^|\/)\.git\//.test(rel) ||
@@ -1636,7 +1637,11 @@ async function scanFiles(files) {
         bytes: f.bytes instanceof Uint8Array ? f.bytes : new Uint8Array(f.bytes),
       }))
       // drop directory-looking entries
-      .filter((f) => f.path !== "" && !f.path.endsWith("/"));
+      .filter((f) => f.path !== "" && !f.path.endsWith("/"))
+      // drop macOS zip packaging artifacts: __MACOSX/ subtrees hold AppleDouble
+      // resource forks (._SKILL.md etc). They're garbage bytes, and their
+      // ._SKILL.md entries would otherwise be detected as a second skill root.
+      .filter((f) => !/(^|\/)__MACOSX\//i.test(f.path));
   } catch {
     normalized = [];
   }

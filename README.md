@@ -36,7 +36,7 @@ src/
   style.css       # dark-first theme with light mode
   template.html   # shell with build markers
 tests/
-  run-tests.mjs   # 72 tests, zero dependencies:  node tests/run-tests.mjs
+  run-tests.mjs   # 74 tests, zero dependencies:  node tests/run-tests.mjs
   fixtures/       # clean / evil / sloppy sample skills
 ```
 
@@ -46,7 +46,7 @@ Edit files under `src/`, then rebuild and test:
 
 ```bash
 node build.mjs            # regenerate index.html
-node tests/run-tests.mjs  # run the suite (should print PASSED: 72  FAILED: 0)
+node tests/run-tests.mjs  # run the suite (should print PASSED: 74  FAILED: 0)
 ```
 
 The engine is the single source of truth for detection; the UI only calls `SkillScanner.scanFiles()` and `SkillScanner.parseZip()` and never reimplements a rule. See `SPEC.md` before changing rule IDs or severities — they're a stable contract.

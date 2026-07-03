@@ -439,6 +439,29 @@ await test("QUA-002 missing-name/description fire when frontmatter incomplete", 
   assert.ok(q2.some((f) => /description/i.test(f.title)), "missing description not reported");
 });
 
+section("macOS zip artifacts (__MACOSX / AppleDouble)");
+const GOOD_FM_EARLY =
+  "---\nname: reg\ndescription: use when the user wants a regression fixture skill for exercising detection rules\n---\n# Reg\nBody content present for length.\n";
+await test("__MACOSX subtree is excluded and never becomes a ghost skill", async () => {
+  const res = await scanFiles([
+    entry("odc-canvas/odc-canvas/SKILL.md",
+      "---\nname: odc-canvas\ndescription: use when the user wants a governance canvas fixture for testing\n---\n# ODC\nBody long enough to pass checks.\n"),
+    entry("odc-canvas/odc-canvas/scripts/run.py", "print('ok')\n"),
+    entry("odc-canvas/__MACOSX/odc-canvas/._SKILL.md", "\x00\x05\x16\x07garbage resource fork"),
+    entry("odc-canvas/__MACOSX/odc-canvas/scripts/._run.py", "\x00\x05\x16\x07garbage"),
+  ]);
+  assert.strictEqual(res.skills.length, 1, "AppleDouble ._SKILL.md must not create a second skill");
+  assert.strictEqual(res.skills[0].meta.fileCount, 2, "__MACOSX members must not count as skill files");
+});
+await test("._AppleDouble files inside the skill itself are flagged as junk (QUA-007)", async () => {
+  const res = await scanFiles([
+    entry("reg/SKILL.md", GOOD_FM_EARLY),
+    entry("reg/._helper.py", "\x00\x05\x16\x07garbage"),
+  ]);
+  const q7 = findRule(res.skills[0], "QUA-007");
+  assert.ok(q7.length === 1 && /\._helper\.py/.test(q7[0].detail), "._helper.py should be listed as junk");
+});
+
 // ===========================================================================
 // Regression tests for red-team detection bug fixes
 // ===========================================================================

@@ -136,6 +136,12 @@
 
 * { box-sizing: border-box; }
 
+/* The hidden attribute must ALWAYS win. Without this, any element that sets
+   its own display (e.g. .view-intake { display:flex }) silently overrides the
+   browser's [hidden] { display:none } and can never be hidden — which is how
+   stale panels ended up stacked on screen. */
+[hidden] { display: none !important; }
+
 html, body { height: 100%; }
 
 body {
@@ -290,43 +296,61 @@ body::after {
   to { opacity: 1; transform: none; }
 }
 
-/* ---------- Workbench (intake ⇄ scanning side by side) ---------- */
+/* ---------- Workbench: drop zone + scanner, a symmetric pair ---------- */
 .workbench {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: clamp(18px, 3vw, 36px);
+  flex-direction: column;
+  gap: 22px;
+  max-width: 980px;
+  margin: 0 auto;
+  padding-top: clamp(8px, 4vh, 40px);
+  animation: fadeUp 0.4s var(--ease);
 }
-.workbench > .view { min-width: 0; flex: 1 1 auto; }
-/* while scanning: two columns — drop zone stays put, scanner slides in beside it */
-.workbench.is-scanning .view-intake { flex: 1 1 52%; }
-.workbench.is-scanning .view-scanning { flex: 1 1 48%; min-height: 60vh; }
+.workbench-row {
+  display: flex;
+  align-items: stretch;          /* equal-height columns */
+  gap: clamp(16px, 2.5vw, 26px);
+  min-height: clamp(380px, 52vh, 520px);
+}
+.workbench-row > .view {
+  flex: 1 1 0;                   /* exactly equal widths */
+  min-width: 0;
+  display: flex;
+}
+/* while scanning, the drop side steps back and the scanner takes focus */
+.workbench.is-scanning .view-intake {
+  pointer-events: none;
+}
 .workbench.is-scanning .view-intake .intake-inner {
   opacity: 0.45;
   filter: saturate(0.5);
+}
+.view-intake .intake-inner {
   transition: opacity 0.35s var(--ease), filter 0.35s var(--ease);
 }
-.workbench.is-scanning .view-intake { pointer-events: none; }
 @media (max-width: 860px) {
-  .workbench.is-scanning { flex-direction: column; }
-  /* scanner first when stacked so the action stays in view */
-  .workbench.is-scanning .view-scanning { order: -1; width: 100%; min-height: 0; }
-  .workbench.is-scanning .view-intake { min-height: 0; }
+  .workbench-row { flex-direction: column; min-height: 0; }
+  /* idle: the standby panel would just be dead space on small screens */
+  .workbench:not(.is-scanning) .view-scanning { display: none; }
+  /* scanning: scanner first so the action stays in view */
+  .workbench.is-scanning .view-scanning { order: -1; }
+  .workbench.is-scanning .scanner-frame { min-height: 260px; }
 }
 
-/* ---------- Intake ---------- */
-.view-intake { min-height: 60vh; display: flex; align-items: center; }
+/* ---------- Intake column ---------- */
 .intake-inner {
   width: 100%;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 22px;
+  gap: 16px;
 }
 .dropzone {
   position: relative;
   width: 100%;
-  max-width: 640px;
+  flex: 1;                        /* fill the column so both cards match */
+  display: flex;
+  align-items: center;
+  justify-content: center;
   border: 2px dashed var(--border);
   border-radius: var(--radius);
   background:
@@ -395,7 +419,6 @@ body::after {
 
 .intake-error {
   width: 100%;
-  max-width: 640px;
   border: 1px solid var(--sev-critical);
   background: var(--sev-critical-bg);
   color: var(--text);
@@ -410,7 +433,7 @@ body::after {
 
 .intake-legend {
   list-style: none;
-  margin: 6px 0 0;
+  margin: 0;
   padding: 0;
   display: flex;
   flex-wrap: wrap;
@@ -476,18 +499,30 @@ body::after {
 }
 .btn-mini:hover { color: var(--accent); }
 
-/* ---------- Scanning ---------- */
-.view-scanning { min-height: 58vh; display: flex; align-items: center; justify-content: center; }
-.scanner { width: 100%; max-width: 620px; text-align: center; }
+/* ---------- Scanner (standby ⇄ inspecting) ---------- */
+.scanner { width: 100%; display: flex; text-align: center; }
 .scanner-frame {
   position: relative;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
   border: 1px solid var(--border);
   border-radius: var(--radius);
   background: var(--panel);
-  padding: 30px 24px 24px;
+  padding: 28px 24px 20px;
   overflow: hidden;
   min-height: 220px;
-  box-shadow: var(--shadow);
+  box-shadow: var(--shadow-sm);
+  transition: border-color 0.35s var(--ease), box-shadow 0.35s var(--ease), opacity 0.35s var(--ease);
+}
+/* standby: a quiet instrument waiting for input */
+.workbench:not(.is-scanning) .scanner-frame { opacity: 0.75; }
+.workbench:not(.is-scanning) .scanner-beam { display: none; }
+.workbench:not(.is-scanning) .scanner-title { color: var(--text-faint); }
+/* scanning: the panel lights up */
+.workbench.is-scanning .scanner-frame {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 4px var(--accent-glow), var(--shadow-sm);
 }
 .scanner-grid {
   position: absolute;
@@ -539,7 +574,9 @@ body::after {
   font-family: var(--mono);
   font-size: 0.8rem;
   text-align: left;
-  max-height: 118px;
+  flex: 1;                 /* ticker takes the frame's middle */
+  min-height: 96px;
+  max-height: none;
   overflow: hidden;
   mask-image: linear-gradient(180deg, transparent, #000 22%, #000 80%, transparent);
   -webkit-mask-image: linear-gradient(180deg, transparent, #000 22%, #000 80%, transparent);
@@ -562,7 +599,11 @@ body::after {
 }
 @keyframes tickIn { from { opacity: 0; transform: translateX(-6px); } to { opacity: 1; transform: none; } }
 .scanner-status {
-  margin: 16px 0 0;
+  position: relative;
+  z-index: 2;
+  margin: 14px 0 0;
+  padding-top: 12px;
+  border-top: 1px solid var(--border-soft);
   color: var(--text-dim);
   font-family: var(--mono);
   font-size: 0.82rem;

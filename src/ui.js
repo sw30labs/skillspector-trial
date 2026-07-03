@@ -140,23 +140,37 @@
   //  VIEW SWITCHING
   // =========================================================================
   function showView(name) {
-    // "view-scanning" is special: the scanner panel sits BESIDE the intake
-    // drop zone instead of replacing it, so both stay visible.
-    var sideBySide = name === "view-scanning";
-    Object.keys(views).forEach(function (k) {
+    // The workbench (drop zone + scanner) is one composition: the scanner
+    // idles in standby beside the drop zone and lights up while scanning.
+    // Summary and report replace the whole workbench.
+    var onWorkbench = name === "view-intake" || name === "view-scanning";
+    var scanning = name === "view-scanning";
+
+    if (refs.workbench) {
+      if (onWorkbench) refs.workbench.removeAttribute("hidden");
+      else refs.workbench.setAttribute("hidden", "");
+      refs.workbench.classList.toggle("is-scanning", scanning);
+    }
+    // The two workbench sections live and die with their wrapper.
+    ["view-intake", "view-scanning"].forEach(function (k) {
+      if (views[k]) views[k].removeAttribute("hidden");
+    });
+    ["view-summary", "view-report"].forEach(function (k) {
       var v = views[k];
       if (!v) return;
-      var show = k === name || (sideBySide && k === "view-intake");
-      if (show) v.removeAttribute("hidden");
+      if (k === name) v.removeAttribute("hidden");
       else v.setAttribute("hidden", "");
     });
-    if (refs.workbench) refs.workbench.classList.toggle("is-scanning", sideBySide);
     // While scanning, the visible intake must not take input or focus.
     var intake = views["view-intake"];
     if (intake) {
-      if (sideBySide) intake.setAttribute("inert", "");
+      if (scanning) intake.setAttribute("inert", "");
       else intake.removeAttribute("inert");
     }
+  }
+
+  function workbenchActive() {
+    return refs.workbench && !refs.workbench.hasAttribute("hidden");
   }
 
   function resetToIntake() {
@@ -167,9 +181,18 @@
     state.multi = false;
     state.filters = null;
     hideError();
+    setScannerStandby();
     showView("view-intake");
     // return focus somewhere sensible
     if (refs.dropZone) { try { refs.dropZone.focus(); } catch (e) {} }
+  }
+
+  // Scanner panel copy for the idle state (mirrors the template defaults).
+  function setScannerStandby() {
+    if (refs.scanTitle) refs.scanTitle.textContent = "Standby";
+    if (refs.scanCount) refs.scanCount.textContent = "awaiting bundle";
+    if (refs.scanTicker) refs.scanTicker.innerHTML = "";
+    setScanStatus("Drop a skill on the left — analysis runs locally.");
   }
 
   // =========================================================================
@@ -419,6 +442,7 @@
     }).catch(function (err) {
       stopTicker();
       state.scanning = false;
+      setScannerStandby();
       showView("view-intake");
       showError("Scan failed.", (err && err.message) ? String(err.message) : "Unexpected error while scanning.");
     });
@@ -450,6 +474,7 @@
     stopTicker();
     var ticker = refs.scanTicker;
     var count = refs.scanCount;
+    if (refs.scanTitle) refs.scanTitle.textContent = "Inspecting";
     if (count) count.textContent = entries.length + (entries.length === 1 ? " file" : " files");
     if (!ticker) return;
     ticker.innerHTML = "";
@@ -1251,6 +1276,7 @@
     refs.scanTicker = $("scanTicker");
     refs.scanCount = $("scanCount");
     refs.scanStatus = $("scanStatus");
+    refs.scanTitle = $("scanTitle");
     refs.summaryBody = $("summaryBody");
     refs.summarySub = $("summarySub");
     refs.reportName = $("reportName");
@@ -1345,13 +1371,11 @@
 
     // Prevent the browser from navigating when files are dropped outside the zone.
     on(window, "dragover", function (e) {
-      // Only prevent default if intake view is active (so we don't clobber other UI)
-      if (views["view-intake"] && !views["view-intake"].hasAttribute("hidden")) {
-        e.preventDefault();
-      }
+      // Only prevent default if the workbench is active (so we don't clobber other UI)
+      if (workbenchActive()) e.preventDefault();
     });
     on(window, "drop", function (e) {
-      if (!state.scanning && views["view-intake"] && !views["view-intake"].hasAttribute("hidden")) {
+      if (!state.scanning && workbenchActive()) {
         prevent(e);
         if (e.dataTransfer) handleDataTransfer(e.dataTransfer);
       } else {
@@ -1395,7 +1419,8 @@
       }
     });
 
-    // start on intake
+    // start on intake, scanner idling in standby
+    setScannerStandby();
     showView("view-intake");
   }
 

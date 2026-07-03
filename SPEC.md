@@ -126,7 +126,7 @@ with no NUL byte in the first 8KB. Others → binary (skanned only by QUA-010).
 - QUA-004 description quality: < 20 chars (medium); > 1024 chars (low); no trigger guidance — lacks any of "use when|trigger|use this skill|when the user" (low); first-person "I can/I will" (low).
 - QUA-005 SKILL.md too long: body > 500 lines (low) or > 5000 words (medium) — progressive-disclosure hint.
 - QUA-006 broken relative references: markdown links/paths in SKILL.md pointing at files not present in bundle (medium each, cap 5). Anchor-only, http(s), mailto exempt.
-- QUA-007 junk files: .DS_Store, Thumbs.db, __pycache__/, *.pyc, .git/, node_modules/, *.log (low, one finding listing up to 10).
+- QUA-007 junk files: .DS_Store, Thumbs.db, ._* (AppleDouble), __pycache__/, *.pyc, .git/, node_modules/, *.log (low, one finding listing up to 10). Note: `__MACOSX/` subtrees are macOS zip packaging artifacts and are excluded from scanning entirely during input normalization (they must never create a skill root or count toward file totals).
 - QUA-008 oversized bundle: total > 10 MB (medium) or > 30 files of code (info: consider splitting), single text file > 1 MB (low).
 - QUA-009 scripts without mention: executable-ish files (.py/.sh/.js) never referenced in any .md (info, list them) — dead weight or surprise behavior.
 - QUA-010 binary blobs: any non-media binary > 100 KB (medium — can hide anything), media (png/jpg/gif/svg/pdf) info only.

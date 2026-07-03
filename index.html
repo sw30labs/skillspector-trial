@@ -143,6 +143,12 @@
 
 * { box-sizing: border-box; }
 
+/* The hidden attribute must ALWAYS win. Without this, any element that sets
+   its own display (e.g. .view-intake { display:flex }) silently overrides the
+   browser's [hidden] { display:none } and can never be hidden — which is how
+   stale panels ended up stacked on screen. */
+[hidden] { display: none !important; }
+
 html, body { height: 100%; }
 
 body {
@@ -297,43 +303,61 @@ body::after {
   to { opacity: 1; transform: none; }
 }
 
-/* ---------- Workbench (intake ⇄ scanning side by side) ---------- */
+/* ---------- Workbench: drop zone + scanner, a symmetric pair ---------- */
 .workbench {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: clamp(18px, 3vw, 36px);
+  flex-direction: column;
+  gap: 22px;
+  max-width: 980px;
+  margin: 0 auto;
+  padding-top: clamp(8px, 4vh, 40px);
+  animation: fadeUp 0.4s var(--ease);
 }
-.workbench > .view { min-width: 0; flex: 1 1 auto; }
-/* while scanning: two columns — drop zone stays put, scanner slides in beside it */
-.workbench.is-scanning .view-intake { flex: 1 1 52%; }
-.workbench.is-scanning .view-scanning { flex: 1 1 48%; min-height: 60vh; }
+.workbench-row {
+  display: flex;
+  align-items: stretch;          /* equal-height columns */
+  gap: clamp(16px, 2.5vw, 26px);
+  min-height: clamp(380px, 52vh, 520px);
+}
+.workbench-row > .view {
+  flex: 1 1 0;                   /* exactly equal widths */
+  min-width: 0;
+  display: flex;
+}
+/* while scanning, the drop side steps back and the scanner takes focus */
+.workbench.is-scanning .view-intake {
+  pointer-events: none;
+}
 .workbench.is-scanning .view-intake .intake-inner {
   opacity: 0.45;
   filter: saturate(0.5);
+}
+.view-intake .intake-inner {
   transition: opacity 0.35s var(--ease), filter 0.35s var(--ease);
 }
-.workbench.is-scanning .view-intake { pointer-events: none; }
 @media (max-width: 860px) {
-  .workbench.is-scanning { flex-direction: column; }
-  /* scanner first when stacked so the action stays in view */
-  .workbench.is-scanning .view-scanning { order: -1; width: 100%; min-height: 0; }
-  .workbench.is-scanning .view-intake { min-height: 0; }
+  .workbench-row { flex-direction: column; min-height: 0; }
+  /* idle: the standby panel would just be dead space on small screens */
+  .workbench:not(.is-scanning) .view-scanning { display: none; }
+  /* scanning: scanner first so the action stays in view */
+  .workbench.is-scanning .view-scanning { order: -1; }
+  .workbench.is-scanning .scanner-frame { min-height: 260px; }
 }
 
-/* ---------- Intake ---------- */
-.view-intake { min-height: 60vh; display: flex; align-items: center; }
+/* ---------- Intake column ---------- */
 .intake-inner {
   width: 100%;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 22px;
+  gap: 16px;
 }
 .dropzone {
   position: relative;
   width: 100%;
-  max-width: 640px;
+  flex: 1;                        /* fill the column so both cards match */
+  display: flex;
+  align-items: center;
+  justify-content: center;
   border: 2px dashed var(--border);
   border-radius: var(--radius);
   background:
@@ -402,7 +426,6 @@ body::after {
 
 .intake-error {
   width: 100%;
-  max-width: 640px;
   border: 1px solid var(--sev-critical);
   background: var(--sev-critical-bg);
   color: var(--text);
@@ -417,7 +440,7 @@ body::after {
 
 .intake-legend {
   list-style: none;
-  margin: 6px 0 0;
+  margin: 0;
   padding: 0;
   display: flex;
   flex-wrap: wrap;
@@ -483,18 +506,30 @@ body::after {
 }
 .btn-mini:hover { color: var(--accent); }
 
-/* ---------- Scanning ---------- */
-.view-scanning { min-height: 58vh; display: flex; align-items: center; justify-content: center; }
-.scanner { width: 100%; max-width: 620px; text-align: center; }
+/* ---------- Scanner (standby ⇄ inspecting) ---------- */
+.scanner { width: 100%; display: flex; text-align: center; }
 .scanner-frame {
   position: relative;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
   border: 1px solid var(--border);
   border-radius: var(--radius);
   background: var(--panel);
-  padding: 30px 24px 24px;
+  padding: 28px 24px 20px;
   overflow: hidden;
   min-height: 220px;
-  box-shadow: var(--shadow);
+  box-shadow: var(--shadow-sm);
+  transition: border-color 0.35s var(--ease), box-shadow 0.35s var(--ease), opacity 0.35s var(--ease);
+}
+/* standby: a quiet instrument waiting for input */
+.workbench:not(.is-scanning) .scanner-frame { opacity: 0.75; }
+.workbench:not(.is-scanning) .scanner-beam { display: none; }
+.workbench:not(.is-scanning) .scanner-title { color: var(--text-faint); }
+/* scanning: the panel lights up */
+.workbench.is-scanning .scanner-frame {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 4px var(--accent-glow), var(--shadow-sm);
 }
 .scanner-grid {
   position: absolute;
@@ -546,7 +581,9 @@ body::after {
   font-family: var(--mono);
   font-size: 0.8rem;
   text-align: left;
-  max-height: 118px;
+  flex: 1;                 /* ticker takes the frame's middle */
+  min-height: 96px;
+  max-height: none;
   overflow: hidden;
   mask-image: linear-gradient(180deg, transparent, #000 22%, #000 80%, transparent);
   -webkit-mask-image: linear-gradient(180deg, transparent, #000 22%, #000 80%, transparent);
@@ -569,7 +606,11 @@ body::after {
 }
 @keyframes tickIn { from { opacity: 0; transform: translateX(-6px); } to { opacity: 1; transform: none; } }
 .scanner-status {
-  margin: 16px 0 0;
+  position: relative;
+  z-index: 2;
+  margin: 14px 0 0;
+  padding-top: 12px;
+  border-top: 1px solid var(--border-soft);
   color: var(--text-dim);
   font-family: var(--mono);
   font-size: 0.82rem;
@@ -1103,76 +1144,79 @@ body::after {
   <main id="main" class="app-main" role="main">
     <!-- Views are toggled by ui.js; all live here -->
 
-    <!-- Workbench: intake + scanning live side by side while a scan runs -->
+    <!-- WORKBENCH: drop zone + scanner instrument panel, always paired.
+         The scanner idles in standby and lights up while a scan runs. -->
     <div class="workbench" id="workbench">
+      <div class="workbench-row">
 
-    <!-- DROP / INTAKE VIEW -->
-    <section id="view-intake" class="view view-intake" aria-label="Upload a skill to scan">
-      <div class="intake-inner">
-        <div
-          id="dropZone"
-          class="dropzone"
-          role="button"
-          tabindex="0"
-          aria-label="Drop a skill folder, .zip, or .skill file here, or press Enter to browse"
-        >
-          <div class="dropzone-scanline" aria-hidden="true"></div>
-          <div class="dropzone-content">
-            <span class="dz-icon" aria-hidden="true">
-              <svg viewBox="0 0 48 48" width="52" height="52"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M24 6v22"/><path d="M15 19l9 9 9-9"/><path d="M8 32v6a4 4 0 0 0 4 4h24a4 4 0 0 0 4-4v-6"/></g></svg>
-            </span>
-            <p class="dz-title">Drop a skill to inspect</p>
-            <p class="dz-sub">A folder, a <code>.zip</code>, or a <code>.skill</code> bundle</p>
-            <p class="dz-hint">Runs entirely in your browser. Nothing is uploaded.</p>
+        <!-- DROP / INTAKE -->
+        <section id="view-intake" class="view view-intake" aria-label="Upload a skill to scan">
+          <div class="intake-inner">
+            <div
+              id="dropZone"
+              class="dropzone"
+              role="button"
+              tabindex="0"
+              aria-label="Drop a skill folder, .zip, or .skill file here, or press Enter to browse"
+            >
+              <div class="dropzone-scanline" aria-hidden="true"></div>
+              <div class="dropzone-content">
+                <span class="dz-icon" aria-hidden="true">
+                  <svg viewBox="0 0 48 48" width="52" height="52"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M24 6v22"/><path d="M15 19l9 9 9-9"/><path d="M8 32v6a4 4 0 0 0 4 4h24a4 4 0 0 0 4-4v-6"/></g></svg>
+                </span>
+                <p class="dz-title">Drop a skill to inspect</p>
+                <p class="dz-sub">A folder, a <code>.zip</code>, or a <code>.skill</code> bundle</p>
+                <p class="dz-hint">Runs entirely in your browser. Nothing is uploaded.</p>
+              </div>
+            </div>
+
+            <div class="intake-buttons">
+              <button type="button" class="btn btn-ghost" id="pickFolderBtn">
+                <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M10 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-8l-2-2z"/></svg>
+                Choose folder
+              </button>
+              <button type="button" class="btn btn-ghost" id="pickZipBtn">
+                <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M6 2h9l5 5v13a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2zm7 1.5V8h4.5L13 3.5zM11 9h2v2h-2V9zm0 3h2v2h-2v-2zm0 3h2v3h-2v-3z"/></svg>
+                Choose .zip / .skill
+              </button>
+              <button type="button" class="btn btn-primary" id="demoBtn">
+                <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M8 5v14l11-7z"/></svg>
+                Scan demo skill
+              </button>
+            </div>
+
+            <!-- Hidden native inputs -->
+            <input type="file" id="folderInput" webkitdirectory directory multiple class="visually-hidden" tabindex="-1" aria-hidden="true" />
+            <input type="file" id="zipInput" accept=".zip,.skill,application/zip" multiple class="visually-hidden" tabindex="-1" aria-hidden="true" />
           </div>
-        </div>
+        </section>
 
-        <div class="intake-buttons">
-          <button type="button" class="btn btn-ghost" id="pickFolderBtn">
-            <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M10 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-8l-2-2z"/></svg>
-            Choose folder
-          </button>
-          <button type="button" class="btn btn-ghost" id="pickZipBtn">
-            <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M6 2h9l5 5v13a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2zm7 1.5V8h4.5L13 3.5zM11 9h2v2h-2V9zm0 3h2v2h-2v-2zm0 3h2v3h-2v-3z"/></svg>
-            Choose .zip / .skill
-          </button>
-          <button type="button" class="btn btn-primary" id="demoBtn">
-            <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M8 5v14l11-7z"/></svg>
-            Scan demo skill
-          </button>
-        </div>
-
-        <!-- Hidden native inputs -->
-        <input type="file" id="folderInput" webkitdirectory directory multiple class="visually-hidden" tabindex="-1" aria-hidden="true" />
-        <input type="file" id="zipInput" accept=".zip,.skill,application/zip" multiple class="visually-hidden" tabindex="-1" aria-hidden="true" />
-
-        <div class="intake-error" id="intakeError" role="alert" hidden></div>
-
-        <ul class="intake-legend" aria-label="What Skillspector checks">
-          <li><span class="legend-dot sev-critical" aria-hidden="true"></span> Prompt injection &amp; exfiltration</li>
-          <li><span class="legend-dot sev-high" aria-hidden="true"></span> Dangerous shell &amp; secrets</li>
-          <li><span class="legend-dot sev-medium" aria-hidden="true"></span> Quality &amp; hygiene</li>
-          <li><span class="legend-dot cap-dot" aria-hidden="true"></span> Capability surface</li>
-        </ul>
-      </div>
-    </section>
-
-    <!-- SCANNING VIEW -->
-    <section id="view-scanning" class="view view-scanning" aria-label="Scanning in progress" aria-live="polite" hidden>
-      <div class="scanner">
-        <div class="scanner-frame">
-          <div class="scanner-beam" aria-hidden="true"></div>
-          <div class="scanner-grid" aria-hidden="true"></div>
-          <div class="scanner-label">
-            <span class="scanner-title">Inspecting</span>
-            <span class="scanner-count" id="scanCount"></span>
+        <!-- SCANNER (standby ⇄ inspecting) -->
+        <section id="view-scanning" class="view view-scanning" aria-label="Scanner" aria-live="polite">
+          <div class="scanner">
+            <div class="scanner-frame">
+              <div class="scanner-beam" aria-hidden="true"></div>
+              <div class="scanner-grid" aria-hidden="true"></div>
+              <div class="scanner-label">
+                <span class="scanner-title" id="scanTitle">Standby</span>
+                <span class="scanner-count" id="scanCount">awaiting bundle</span>
+              </div>
+              <ul class="scanner-ticker" id="scanTicker" aria-hidden="true"></ul>
+              <p class="scanner-status" id="scanStatus">Drop a skill on the left — analysis runs locally.</p>
+            </div>
           </div>
-          <ul class="scanner-ticker" id="scanTicker" aria-hidden="true"></ul>
-        </div>
-        <p class="scanner-status" id="scanStatus">Reading bundle…</p>
-      </div>
-    </section>
+        </section>
 
+      </div><!-- /workbench-row -->
+
+      <div class="intake-error" id="intakeError" role="alert" hidden></div>
+
+      <ul class="intake-legend" aria-label="What Skillspector checks">
+        <li><span class="legend-dot sev-critical" aria-hidden="true"></span> Prompt injection &amp; exfiltration</li>
+        <li><span class="legend-dot sev-high" aria-hidden="true"></span> Dangerous shell &amp; secrets</li>
+        <li><span class="legend-dot sev-medium" aria-hidden="true"></span> Quality &amp; hygiene</li>
+        <li><span class="legend-dot cap-dot" aria-hidden="true"></span> Capability surface</li>
+      </ul>
     </div><!-- /workbench -->
 
     <!-- SUMMARY (MULTI-SKILL) VIEW -->
@@ -2744,6 +2788,7 @@ function scanOneSkill(rootPath, rootFiles) {
     if (
       b === ".DS_Store" ||
       b === "Thumbs.db" ||
+      /^\._/.test(b) || // AppleDouble resource-fork copies (._foo)
       /(^|\/)__pycache__\//.test(rel) ||
       /\.pyc$/.test(rel) ||
       /(^|\/)\.git\//.test(rel) ||
@@ -2915,7 +2960,11 @@ async function scanFiles(files) {
         bytes: f.bytes instanceof Uint8Array ? f.bytes : new Uint8Array(f.bytes),
       }))
       // drop directory-looking entries
-      .filter((f) => f.path !== "" && !f.path.endsWith("/"));
+      .filter((f) => f.path !== "" && !f.path.endsWith("/"))
+      // drop macOS zip packaging artifacts: __MACOSX/ subtrees hold AppleDouble
+      // resource forks (._SKILL.md etc). They're garbage bytes, and their
+      // ._SKILL.md entries would otherwise be detected as a second skill root.
+      .filter((f) => !/(^|\/)__MACOSX\//i.test(f.path));
   } catch {
     normalized = [];
   }
@@ -3105,23 +3154,37 @@ globalThis.SkillScanner = { scanFiles, parseZip, VERSION, RULES };
   //  VIEW SWITCHING
   // =========================================================================
   function showView(name) {
-    // "view-scanning" is special: the scanner panel sits BESIDE the intake
-    // drop zone instead of replacing it, so both stay visible.
-    var sideBySide = name === "view-scanning";
-    Object.keys(views).forEach(function (k) {
+    // The workbench (drop zone + scanner) is one composition: the scanner
+    // idles in standby beside the drop zone and lights up while scanning.
+    // Summary and report replace the whole workbench.
+    var onWorkbench = name === "view-intake" || name === "view-scanning";
+    var scanning = name === "view-scanning";
+
+    if (refs.workbench) {
+      if (onWorkbench) refs.workbench.removeAttribute("hidden");
+      else refs.workbench.setAttribute("hidden", "");
+      refs.workbench.classList.toggle("is-scanning", scanning);
+    }
+    // The two workbench sections live and die with their wrapper.
+    ["view-intake", "view-scanning"].forEach(function (k) {
+      if (views[k]) views[k].removeAttribute("hidden");
+    });
+    ["view-summary", "view-report"].forEach(function (k) {
       var v = views[k];
       if (!v) return;
-      var show = k === name || (sideBySide && k === "view-intake");
-      if (show) v.removeAttribute("hidden");
+      if (k === name) v.removeAttribute("hidden");
       else v.setAttribute("hidden", "");
     });
-    if (refs.workbench) refs.workbench.classList.toggle("is-scanning", sideBySide);
     // While scanning, the visible intake must not take input or focus.
     var intake = views["view-intake"];
     if (intake) {
-      if (sideBySide) intake.setAttribute("inert", "");
+      if (scanning) intake.setAttribute("inert", "");
       else intake.removeAttribute("inert");
     }
+  }
+
+  function workbenchActive() {
+    return refs.workbench && !refs.workbench.hasAttribute("hidden");
   }
 
   function resetToIntake() {
@@ -3132,9 +3195,18 @@ globalThis.SkillScanner = { scanFiles, parseZip, VERSION, RULES };
     state.multi = false;
     state.filters = null;
     hideError();
+    setScannerStandby();
     showView("view-intake");
     // return focus somewhere sensible
     if (refs.dropZone) { try { refs.dropZone.focus(); } catch (e) {} }
+  }
+
+  // Scanner panel copy for the idle state (mirrors the template defaults).
+  function setScannerStandby() {
+    if (refs.scanTitle) refs.scanTitle.textContent = "Standby";
+    if (refs.scanCount) refs.scanCount.textContent = "awaiting bundle";
+    if (refs.scanTicker) refs.scanTicker.innerHTML = "";
+    setScanStatus("Drop a skill on the left — analysis runs locally.");
   }
 
   // =========================================================================
@@ -3384,6 +3456,7 @@ globalThis.SkillScanner = { scanFiles, parseZip, VERSION, RULES };
     }).catch(function (err) {
       stopTicker();
       state.scanning = false;
+      setScannerStandby();
       showView("view-intake");
       showError("Scan failed.", (err && err.message) ? String(err.message) : "Unexpected error while scanning.");
     });
@@ -3415,6 +3488,7 @@ globalThis.SkillScanner = { scanFiles, parseZip, VERSION, RULES };
     stopTicker();
     var ticker = refs.scanTicker;
     var count = refs.scanCount;
+    if (refs.scanTitle) refs.scanTitle.textContent = "Inspecting";
     if (count) count.textContent = entries.length + (entries.length === 1 ? " file" : " files");
     if (!ticker) return;
     ticker.innerHTML = "";
@@ -4216,6 +4290,7 @@ globalThis.SkillScanner = { scanFiles, parseZip, VERSION, RULES };
     refs.scanTicker = $("scanTicker");
     refs.scanCount = $("scanCount");
     refs.scanStatus = $("scanStatus");
+    refs.scanTitle = $("scanTitle");
     refs.summaryBody = $("summaryBody");
     refs.summarySub = $("summarySub");
     refs.reportName = $("reportName");
@@ -4310,13 +4385,11 @@ globalThis.SkillScanner = { scanFiles, parseZip, VERSION, RULES };
 
     // Prevent the browser from navigating when files are dropped outside the zone.
     on(window, "dragover", function (e) {
-      // Only prevent default if intake view is active (so we don't clobber other UI)
-      if (views["view-intake"] && !views["view-intake"].hasAttribute("hidden")) {
-        e.preventDefault();
-      }
+      // Only prevent default if the workbench is active (so we don't clobber other UI)
+      if (workbenchActive()) e.preventDefault();
     });
     on(window, "drop", function (e) {
-      if (!state.scanning && views["view-intake"] && !views["view-intake"].hasAttribute("hidden")) {
+      if (!state.scanning && workbenchActive()) {
         prevent(e);
         if (e.dataTransfer) handleDataTransfer(e.dataTransfer);
       } else {
@@ -4360,7 +4433,8 @@ globalThis.SkillScanner = { scanFiles, parseZip, VERSION, RULES };
       }
     });
 
-    // start on intake
+    // start on intake, scanner idling in standby
+    setScannerStandby();
     showView("view-intake");
   }
 
