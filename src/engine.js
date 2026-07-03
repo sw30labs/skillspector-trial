@@ -4,7 +4,7 @@
 // final line is a single `export { ... };` that the build strips. Runs in browser and
 // node >= 18 (DecompressionStream + Response are the only web APIs we lean on).
 
-const VERSION = "1.0.0";
+const VERSION = "2.0.0";
 
 // ---------------------------------------------------------------------------
 // small utils

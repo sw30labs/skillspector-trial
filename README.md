@@ -4,7 +4,8 @@
 ![dependencies](https://img.shields.io/badge/dependencies-none-38bdf8?style=flat-square)
 ![single file](https://img.shields.io/badge/app-single%20HTML%20file-8b5cf6?style=flat-square)
 ![offline](https://img.shields.io/badge/runs-100%25%20offline-16a766?style=flat-square)
-![engine](https://img.shields.io/badge/engine-1.0.0-64748b?style=flat-square)
+![engine](https://img.shields.io/badge/engine-2.0.0-64748b?style=flat-square)
+![release](https://img.shields.io/badge/release-v2.0.0-2ce6c8?style=flat-square)
 
 A single-file, offline web app that scans Claude skills for **security** and **quality** problems. Drag a skill in — a folder, a `.zip`, or a `.skill` file — and get a graded report with findings, evidence, and a capability breakdown. Everything runs client-side in the browser; nothing is uploaded and there are no network calls.
 

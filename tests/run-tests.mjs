@@ -160,15 +160,15 @@ function capIds(skill) {
 // ===========================================================================
 
 section("Engine surface");
-await test("VERSION is 1.0.0", () => {
-  assert.strictEqual(VERSION, "1.0.0");
+await test("VERSION is 2.0.0", () => {
+  assert.strictEqual(VERSION, "2.0.0");
 });
 await test("globalThis.SkillScanner is attached with the full API", () => {
   assert.ok(globalThis.SkillScanner, "SkillScanner missing on globalThis");
   for (const k of ["scanFiles", "parseZip", "VERSION", "RULES"]) {
     assert.ok(k in globalThis.SkillScanner, "missing " + k);
   }
-  assert.strictEqual(globalThis.SkillScanner.VERSION, "1.0.0");
+  assert.strictEqual(globalThis.SkillScanner.VERSION, "2.0.0");
 });
 await test("RULES contains all SEC-001..010 and QUA-001..011", () => {
   const ids = new Set(RULES.map((r) => r.id));
@@ -222,7 +222,7 @@ await test("parsed zip feeds scanFiles end-to-end", async () => {
   ]);
   const files = await parseZip(zip);
   const res = await scanFiles(files);
-  assert.strictEqual(res.version, "1.0.0");
+  assert.strictEqual(res.version, "2.0.0");
   assert.strictEqual(res.skills.length, 1);
   assert.strictEqual(res.skills[0].name, "z");
 });
