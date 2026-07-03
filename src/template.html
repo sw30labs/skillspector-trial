@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="color-scheme" content="dark light" />
+  <title>Skillspector — Claude Skill Security Scanner</title>
+  <style>/*__CSS__*/</style>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+
+  <header class="app-header" role="banner">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 32 32" width="28" height="28" role="img" aria-label="Skillspector logo">
+          <defs>
+            <linearGradient id="lensGrad" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0" stop-color="var(--accent)" />
+              <stop offset="1" stop-color="var(--accent-2)" />
+            </linearGradient>
+          </defs>
+          <circle cx="13" cy="13" r="9" fill="none" stroke="url(#lensGrad)" stroke-width="2.5" />
+          <circle cx="13" cy="13" r="4.5" fill="none" stroke="var(--accent)" stroke-width="1.4" opacity="0.7" />
+          <line x1="19.5" y1="19.5" x2="27" y2="27" stroke="url(#lensGrad)" stroke-width="3" stroke-linecap="round" />
+          <line x1="8" y1="13" x2="18" y2="13" stroke="var(--accent)" stroke-width="1.4" stroke-linecap="round" opacity="0.85" class="brand-scan" />
+        </svg>
+      </span>
+      <span class="brand-text">
+        <span class="brand-name">Skillspector</span>
+        <span class="brand-tag">scan skills before you trust them</span>
+      </span>
+    </div>
+    <div class="header-actions">
+      <span class="engine-ver" id="engineVersion" title="Scan engine version"></span>
+      <button type="button" class="theme-toggle" id="themeToggle" aria-label="Toggle color theme" aria-pressed="false">
+        <span class="theme-icon theme-icon-dark" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M12.74 2.03a9.5 9.5 0 1 0 9.23 12.02.75.75 0 0 0-.98-.9 7.5 7.5 0 0 1-9.37-9.37.75.75 0 0 0-.9-.98 9.6 9.6 0 0 0 2 0z"/></svg>
+        </span>
+        <span class="theme-icon theme-icon-light" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="18" height="18"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.4M12 19.1v2.4M21.5 12h-2.4M4.9 12H2.5M18.7 5.3l-1.7 1.7M7 17l-1.7 1.7M18.7 18.7L17 17M7 7 5.3 5.3"/></g></svg>
+        </span>
+      </button>
+    </div>
+  </header>
+
+  <main id="main" class="app-main" role="main">
+    <!-- Views are toggled by ui.js; all live here -->
+
+    <!-- DROP / INTAKE VIEW -->
+    <section id="view-intake" class="view view-intake" aria-label="Upload a skill to scan">
+      <div class="intake-inner">
+        <div
+          id="dropZone"
+          class="dropzone"
+          role="button"
+          tabindex="0"
+          aria-label="Drop a skill folder, .zip, or .skill file here, or press Enter to browse"
+        >
+          <div class="dropzone-scanline" aria-hidden="true"></div>
+          <div class="dropzone-content">
+            <span class="dz-icon" aria-hidden="true">
+              <svg viewBox="0 0 48 48" width="52" height="52"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M24 6v22"/><path d="M15 19l9 9 9-9"/><path d="M8 32v6a4 4 0 0 0 4 4h24a4 4 0 0 0 4-4v-6"/></g></svg>
+            </span>
+            <p class="dz-title">Drop a skill to inspect</p>
+            <p class="dz-sub">A folder, a <code>.zip</code>, or a <code>.skill</code> bundle</p>
+            <p class="dz-hint">Runs entirely in your browser. Nothing is uploaded.</p>
+          </div>
+        </div>
+
+        <div class="intake-buttons">
+          <button type="button" class="btn btn-ghost" id="pickFolderBtn">
+            <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M10 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-8l-2-2z"/></svg>
+            Choose folder
+          </button>
+          <button type="button" class="btn btn-ghost" id="pickZipBtn">
+            <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M6 2h9l5 5v13a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2zm7 1.5V8h4.5L13 3.5zM11 9h2v2h-2V9zm0 3h2v2h-2v-2zm0 3h2v3h-2v-3z"/></svg>
+            Choose .zip / .skill
+          </button>
+          <button type="button" class="btn btn-primary" id="demoBtn">
+            <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M8 5v14l11-7z"/></svg>
+            Scan demo skill
+          </button>
+        </div>
+
+        <!-- Hidden native inputs -->
+        <input type="file" id="folderInput" webkitdirectory directory multiple class="visually-hidden" tabindex="-1" aria-hidden="true" />
+        <input type="file" id="zipInput" accept=".zip,.skill,application/zip" multiple class="visually-hidden" tabindex="-1" aria-hidden="true" />
+
+        <div class="intake-error" id="intakeError" role="alert" hidden></div>
+
+        <ul class="intake-legend" aria-label="What Skillspector checks">
+          <li><span class="legend-dot sev-critical" aria-hidden="true"></span> Prompt injection &amp; exfiltration</li>
+          <li><span class="legend-dot sev-high" aria-hidden="true"></span> Dangerous shell &amp; secrets</li>
+          <li><span class="legend-dot sev-medium" aria-hidden="true"></span> Quality &amp; hygiene</li>
+          <li><span class="legend-dot cap-dot" aria-hidden="true"></span> Capability surface</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- SCANNING VIEW -->
+    <section id="view-scanning" class="view view-scanning" aria-label="Scanning in progress" aria-live="polite" hidden>
+      <div class="scanner">
+        <div class="scanner-frame">
+          <div class="scanner-beam" aria-hidden="true"></div>
+          <div class="scanner-grid" aria-hidden="true"></div>
+          <div class="scanner-label">
+            <span class="scanner-title">Inspecting</span>
+            <span class="scanner-count" id="scanCount"></span>
+          </div>
+          <ul class="scanner-ticker" id="scanTicker" aria-hidden="true"></ul>
+        </div>
+        <p class="scanner-status" id="scanStatus">Reading bundle…</p>
+      </div>
+    </section>
+
+    <!-- SUMMARY (MULTI-SKILL) VIEW -->
+    <section id="view-summary" class="view view-summary" aria-label="Scan summary" hidden>
+      <div class="view-head">
+        <div>
+          <h1 class="view-h1">Scan summary</h1>
+          <p class="view-sub" id="summarySub"></p>
+        </div>
+        <button type="button" class="btn btn-ghost" data-action="reset">
+          <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M12 5V2L7 6l5 4V7a5 5 0 1 1-5 5H5a7 7 0 1 0 7-7z"/></svg>
+          Scan another
+        </button>
+      </div>
+      <div class="table-wrap">
+        <table class="summary-table">
+          <thead>
+            <tr>
+              <th scope="col">Skill</th>
+              <th scope="col" class="col-grade">Grade</th>
+              <th scope="col" class="col-score">Score</th>
+              <th scope="col" class="col-crit">Criticals</th>
+              <th scope="col" class="col-find">Findings</th>
+              <th scope="col" class="col-go"><span class="visually-hidden">Open report</span></th>
+            </tr>
+          </thead>
+          <tbody id="summaryBody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- REPORT VIEW -->
+    <section id="view-report" class="view view-report" aria-label="Skill report" hidden>
+      <div class="view-head report-head">
+        <div class="report-head-left">
+          <button type="button" class="btn btn-link back-btn" id="backToSummary" hidden>
+            <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M15 5l-7 7 7 7"/></svg>
+            All skills
+          </button>
+          <h1 class="view-h1" id="reportName">Report</h1>
+          <p class="view-sub" id="reportMeta"></p>
+        </div>
+        <div class="report-head-actions">
+          <button type="button" class="btn btn-ghost" id="exportMd">
+            <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 7V3.5L18.5 9H13z"/></svg>
+            Export .md
+          </button>
+          <button type="button" class="btn btn-ghost" id="exportJson">
+            <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M5 3a2 2 0 0 0-2 2v3a2 2 0 0 1-2 2v4a2 2 0 0 1 2 2v3a2 2 0 0 0 2 2h2v-2H5v-4a2 2 0 0 0-1-1.7A2 2 0 0 0 5 15V8h2V6H5V5zm14 0h-2v2h2v3a2 2 0 0 0 1 1.7A2 2 0 0 0 19 15v4h-2v2h2a2 2 0 0 0 2-2v-3a2 2 0 0 1 2-2v-4a2 2 0 0 1-2-2V5a2 2 0 0 0-2-2z"/></svg>
+            Export JSON
+          </button>
+          <button type="button" class="btn btn-primary" data-action="reset">
+            <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M12 5V2L7 6l5 4V7a5 5 0 1 1-5 5H5a7 7 0 1 0 7-7z"/></svg>
+            Scan another
+          </button>
+        </div>
+      </div>
+
+      <div class="report-top">
+        <div class="score-card">
+          <div class="score-ring-wrap">
+            <svg class="score-ring" viewBox="0 0 120 120" role="img" aria-labelledby="scoreRingTitle">
+              <title id="scoreRingTitle">Overall score</title>
+              <circle class="ring-track" cx="60" cy="60" r="52" fill="none" stroke-width="10" />
+              <circle class="ring-value" id="ringValue" cx="60" cy="60" r="52" fill="none" stroke-width="10" stroke-linecap="round" transform="rotate(-90 60 60)" />
+            </svg>
+            <div class="score-center">
+              <span class="score-grade" id="scoreGrade">—</span>
+              <span class="score-number"><span id="scoreNumber">0</span><span class="score-max">/100</span></span>
+            </div>
+          </div>
+          <p class="score-caption" id="scoreCaption"></p>
+        </div>
+
+        <div class="pills-card">
+          <p class="pills-label">Findings by severity <span class="pills-hint">(tap to filter)</span></p>
+          <div class="pills" id="severityPills" role="group" aria-label="Filter findings by severity"></div>
+          <div class="caps-block">
+            <p class="caps-label">Capability surface</p>
+            <div class="caps" id="capabilityChips" aria-label="Detected capabilities"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="findings-head">
+        <h2 class="findings-h2">Findings</h2>
+        <div class="findings-tools">
+          <button type="button" class="btn btn-mini" id="expandAll">Expand all</button>
+          <button type="button" class="btn btn-mini" id="collapseAll">Collapse all</button>
+        </div>
+      </div>
+      <div id="findingsRoot" class="findings-root"></div>
+      <p class="findings-empty" id="findingsEmpty" hidden>No findings match the current filter.</p>
+    </section>
+  </main>
+
+  <footer class="app-footer" role="contentinfo">
+    <span>Skillspector · offline static analysis · your files never leave this page</span>
+  </footer>
+
+  <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+
+  <!-- ONE non-module script: engine globals first, then UI logic -->
+  <script>
+/*__ENGINE__*/
+/*__UI__*/
+  </script>
+</body>
+</html>
