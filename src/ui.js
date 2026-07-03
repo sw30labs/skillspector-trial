@@ -42,7 +42,8 @@
     multi: false,        // came from a multi-skill summary?
     filters: null,       // Set of active severities for report view
     tickerTimer: null,
-    scanning: false      // a scan is in flight (intake stays visible beside the scanner)
+    scanning: false,     // a scan is in flight (intake stays visible beside the scanner)
+    summarySort: { key: "name", dir: "asc" } // summary table ordering
   };
 
   var SEVERITIES = ["critical", "high", "medium", "low", "info"];
@@ -461,6 +462,7 @@
       renderReport(skills[0] || null, false);
     } else {
       state.multi = true;
+      state.summarySort = { key: "name", dir: "asc" }; // fresh scan, fresh order
       renderSummary(result);
     }
   }
@@ -518,13 +520,62 @@
     return (skill && skill.name) ? skill.name : "(unknown)";
   }
 
-  function renderSummary(result) {
-    var body = refs.summaryBody;
-    if (!body) return;
-    body.innerHTML = "";
-    var skills = result.skills;
+  // --- summary sorting -------------------------------------------------------
+  var GRADE_ORDER = { A: 0, B: 1, C: 2, D: 3, F: 4 };
 
+  function summarySortValue(skill, key) {
+    switch (key) {
+      case "grade": return GRADE_ORDER[(skill.grade || "F").toUpperCase()] != null
+        ? GRADE_ORDER[(skill.grade || "F").toUpperCase()] : 9;
+      case "score": return numOr(skill.score, 0);
+      case "crit": return (skill.summary && skill.summary.critical) || 0;
+      case "find": return (skill.findings && skill.findings.length) || 0;
+      default: return safeName(skill).toLowerCase();
+    }
+  }
+
+  function sortedSkills(skills) {
+    var key = state.summarySort.key;
+    var dir = state.summarySort.dir === "desc" ? -1 : 1;
+    return skills.slice().sort(function (a, b) {
+      var va = summarySortValue(a, key);
+      var vb = summarySortValue(b, key);
+      if (va < vb) return -1 * dir;
+      if (va > vb) return 1 * dir;
+      // stable, human-friendly tiebreak: name ascending
+      var na = safeName(a).toLowerCase();
+      var nb = safeName(b).toLowerCase();
+      return na < nb ? -1 : na > nb ? 1 : 0;
+    });
+  }
+
+  function updateSortHeaders() {
+    var ths = document.querySelectorAll(".summary-table th[data-sort-key]");
+    for (var i = 0; i < ths.length; i++) {
+      var th = ths[i];
+      if (th.getAttribute("data-sort-key") === state.summarySort.key) {
+        th.setAttribute("aria-sort", state.summarySort.dir === "desc" ? "descending" : "ascending");
+      } else {
+        th.removeAttribute("aria-sort");
+      }
+    }
+  }
+
+  function toggleSummarySort(key) {
+    if (state.summarySort.key === key) {
+      state.summarySort.dir = state.summarySort.dir === "asc" ? "desc" : "asc";
+    } else {
+      // sensible first direction per column: text ascending, numbers "worst first"
+      state.summarySort.key = key;
+      state.summarySort.dir = (key === "name" || key === "grade" || key === "score") ? "asc" : "desc";
+    }
+    if (state.result && state.multi) renderSummaryRows(state.result);
+  }
+
+  function renderSummary(result) {
+    state.activeSkill = null; // back at the overview
     if (refs.summarySub) {
+      var skills = result.skills;
       var totalCrit = skills.reduce(function (a, s) {
         return a + ((s.summary && s.summary.critical) || 0);
       }, 0);
@@ -532,6 +583,17 @@
         skills.length + " skills detected · " +
         totalCrit + (totalCrit === 1 ? " critical finding" : " critical findings") + " total";
     }
+    renderSummaryRows(result);
+    showView("view-summary");
+    window.scrollTo(0, 0);
+  }
+
+  function renderSummaryRows(result) {
+    var body = refs.summaryBody;
+    if (!body) return;
+    body.innerHTML = "";
+    updateSortHeaders();
+    var skills = sortedSkills(result.skills);
 
     skills.forEach(function (skill, i) {
       var tr = el("tr", "summary-row");
@@ -591,9 +653,6 @@
 
       body.appendChild(tr);
     });
-
-    showView("view-summary");
-    window.scrollTo(0, 0);
   }
 
   function numOr(v, d) { return (typeof v === "number" && isFinite(v)) ? v : d; }
@@ -1019,8 +1078,9 @@
     return d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate());
   }
 
-  function exportMarkdown(skill) {
-    if (!skill) { toast("Nothing to export."); return; }
+  // Build the markdown body for ONE skill (array of lines). Shared by the
+  // single-report export and the export-all bundle.
+  function buildSkillMarkdownLines(skill) {
     var L = [];
     var version = (state.result && state.result.version) ||
       (typeof SkillScanner !== "undefined" && SkillScanner.VERSION) || "";
@@ -1110,19 +1170,74 @@
       });
     }
 
+    return L;
+  }
+
+  function exportMarkdown(skill) {
+    if (!skill) { toast("Nothing to export."); return; }
+    var version = (state.result && state.result.version) ||
+      (typeof SkillScanner !== "undefined" && SkillScanner.VERSION) || "";
+    var L = buildSkillMarkdownLines(skill);
     L.push("---");
     L.push("");
     L.push("_Generated by Skillspector" + (version ? (" " + version) : "") + " — offline static analysis._");
-
     var md = L.join("\n");
     var fname = "skillspector-" + slugify(safeName(skill)) + "-" + dateStamp() + ".md";
     if (download(fname, md, "text/markdown")) toast("Exported " + fname);
   }
 
+  // One markdown file covering EVERY skill in the scan: overview table first,
+  // then each skill's full report (headings demoted one level).
+  function exportAllMarkdown() {
+    var result = state.result;
+    if (!result || !Array.isArray(result.skills) || !result.skills.length) {
+      toast("Nothing to export.");
+      return;
+    }
+    var skills = sortedSkills(result.skills); // export in the on-screen order
+    var version = result.version || "";
+    var L = [];
+    L.push("# Skillspector scan — " + skills.length + (skills.length === 1 ? " skill" : " skills"));
+    L.push("");
+    L.push("- **Scanned:** " + (result.scannedAt || new Date().toISOString()) +
+      (version ? ("  ·  **Engine:** " + version) : ""));
+    var totalCrit = skills.reduce(function (a, s) { return a + ((s.summary && s.summary.critical) || 0); }, 0);
+    L.push("- **Critical findings:** " + totalCrit);
+    L.push("");
+    L.push("## Overview");
+    L.push("");
+    L.push("| Skill | Grade | Score | Criticals | Findings |");
+    L.push("| --- | :-: | --: | --: | --: |");
+    skills.forEach(function (s) {
+      L.push("| " + safeName(s) +
+        " | " + (s.grade || "?") +
+        " | " + numOr(s.score, 0) +
+        " | " + ((s.summary && s.summary.critical) || 0) +
+        " | " + ((s.findings && s.findings.length) || 0) + " |");
+    });
+    L.push("");
+    skills.forEach(function (s) {
+      L.push("---");
+      L.push("");
+      buildSkillMarkdownLines(s).forEach(function (line) {
+        // demote headings so the bundle keeps a single H1
+        L.push(/^#{1,5}\s/.test(line) ? "#" + line : line);
+      });
+    });
+    L.push("---");
+    L.push("");
+    L.push("_Generated by Skillspector" + (version ? (" " + version) : "") + " — offline static analysis._");
+
+    var fname = "skillspector-scan-" + dateStamp() + ".md";
+    if (download(fname, L.join("\n"), "text/markdown")) toast("Exported " + fname);
+  }
+
   function exportJson() {
     if (!state.result) { toast("Nothing to export."); return; }
+    // The JSON payload is always the FULL scan result; name it accordingly.
     var name = state.activeSkill ? safeName(state.activeSkill) :
-      (state.result.skills && state.result.skills[0] ? safeName(state.result.skills[0]) : "scan");
+      (state.multi ? "scan" :
+        (state.result.skills && state.result.skills[0] ? safeName(state.result.skills[0]) : "scan"));
     var text;
     try {
       text = JSON.stringify(state.result, null, 2);
@@ -1404,6 +1519,15 @@
     });
     on($("exportMd"), "click", function () { exportMarkdown(state.activeSkill); });
     on($("exportJson"), "click", function () { exportJson(); });
+    on($("summaryExportMd"), "click", function () { exportAllMarkdown(); });
+    on($("summaryExportJson"), "click", function () { exportJson(); });
+
+    // sortable summary columns
+    var sortThs = document.querySelectorAll(".summary-table th[data-sort-key]");
+    Array.prototype.forEach.call(sortThs, function (th) {
+      var btn = th.querySelector(".th-sort");
+      on(btn, "click", function () { toggleSummarySort(th.getAttribute("data-sort-key")); });
+    });
     on($("expandAll"), "click", function () { setAllFindings(true); });
     on($("collapseAll"), "click", function () { setAllFindings(false); });
 

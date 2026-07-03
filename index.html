@@ -635,22 +635,51 @@ body::after {
 .table-wrap {
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  overflow: hidden;
+  /* cap to the viewport: the table scrolls inside, header stays pinned */
+  max-height: min(64vh, 760px);
+  overflow: auto;
+  overscroll-behavior: contain;
   background: var(--panel);
   box-shadow: var(--shadow-sm);
 }
-.summary-table { width: 100%; border-collapse: collapse; font-size: 0.92rem; }
+/* border-collapse:separate — sticky headers are unreliable with collapse */
+.summary-table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 0.92rem; }
 .summary-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 3;
   text-align: left;
   font-size: 0.72rem;
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: var(--text-faint);
-  padding: 12px 16px;
-  border-bottom: 1px solid var(--border);
+  padding: 8px 10px;
   background: var(--panel-2);
+  box-shadow: inset 0 -1px 0 var(--border); /* border that sticks with the header */
   font-weight: 700;
 }
+
+/* sortable column headers */
+.th-sort {
+  font: inherit;
+  color: inherit;
+  text-transform: inherit;
+  letter-spacing: inherit;
+  background: none;
+  border: 0;
+  padding: 4px 6px;
+  margin: 0;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: color 0.15s, background 0.15s;
+}
+.th-sort:hover { color: var(--text); background: var(--panel-hi); }
+.th-sort:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; color: var(--text); }
+.th-sort::after { content: "↕"; margin-left: 6px; opacity: 0.35; font-size: 0.9em; }
+.summary-table th[aria-sort="ascending"] .th-sort { color: var(--accent); }
+.summary-table th[aria-sort="ascending"] .th-sort::after { content: "↑"; opacity: 1; }
+.summary-table th[aria-sort="descending"] .th-sort { color: var(--accent); }
+.summary-table th[aria-sort="descending"] .th-sort::after { content: "↓"; opacity: 1; }
 .summary-table .col-grade, .summary-table .col-score,
 .summary-table .col-crit, .summary-table .col-find { text-align: center; white-space: nowrap; }
 .summary-table .col-go { width: 40px; }
@@ -1226,20 +1255,30 @@ body::after {
           <h1 class="view-h1">Scan summary</h1>
           <p class="view-sub" id="summarySub"></p>
         </div>
-        <button type="button" class="btn btn-ghost" data-action="reset">
-          <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M12 5V2L7 6l5 4V7a5 5 0 1 1-5 5H5a7 7 0 1 0 7-7z"/></svg>
-          Scan another
-        </button>
+        <div class="report-head-actions">
+          <button type="button" class="btn btn-ghost" id="summaryExportMd">
+            <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 7V3.5L18.5 9H13z"/></svg>
+            Export all .md
+          </button>
+          <button type="button" class="btn btn-ghost" id="summaryExportJson">
+            <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M5 3a2 2 0 0 0-2 2v3a2 2 0 0 1-2 2v4a2 2 0 0 1 2 2v3a2 2 0 0 0 2 2h2v-2H5v-4a2 2 0 0 0-1-1.7A2 2 0 0 0 5 15V8h2V6H5V5zm14 0h-2v2h2v3a2 2 0 0 0 1 1.7A2 2 0 0 0 19 15v4h-2v2h2a2 2 0 0 0 2-2v-3a2 2 0 0 1 2-2v-4a2 2 0 0 1-2-2V5a2 2 0 0 0-2-2z"/></svg>
+            Export JSON
+          </button>
+          <button type="button" class="btn btn-primary" data-action="reset">
+            <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M12 5V2L7 6l5 4V7a5 5 0 1 1-5 5H5a7 7 0 1 0 7-7z"/></svg>
+            Scan another
+          </button>
+        </div>
       </div>
       <div class="table-wrap">
         <table class="summary-table">
           <thead>
             <tr>
-              <th scope="col">Skill</th>
-              <th scope="col" class="col-grade">Grade</th>
-              <th scope="col" class="col-score">Score</th>
-              <th scope="col" class="col-crit">Criticals</th>
-              <th scope="col" class="col-find">Findings</th>
+              <th scope="col" data-sort-key="name"><button type="button" class="th-sort">Skill</button></th>
+              <th scope="col" class="col-grade" data-sort-key="grade"><button type="button" class="th-sort">Grade</button></th>
+              <th scope="col" class="col-score" data-sort-key="score"><button type="button" class="th-sort">Score</button></th>
+              <th scope="col" class="col-crit" data-sort-key="crit"><button type="button" class="th-sort">Criticals</button></th>
+              <th scope="col" class="col-find" data-sort-key="find"><button type="button" class="th-sort">Findings</button></th>
               <th scope="col" class="col-go"><span class="visually-hidden">Open report</span></th>
             </tr>
           </thead>
@@ -3056,7 +3095,8 @@ globalThis.SkillScanner = { scanFiles, parseZip, VERSION, RULES };
     multi: false,        // came from a multi-skill summary?
     filters: null,       // Set of active severities for report view
     tickerTimer: null,
-    scanning: false      // a scan is in flight (intake stays visible beside the scanner)
+    scanning: false,     // a scan is in flight (intake stays visible beside the scanner)
+    summarySort: { key: "name", dir: "asc" } // summary table ordering
   };
 
   var SEVERITIES = ["critical", "high", "medium", "low", "info"];
@@ -3475,6 +3515,7 @@ globalThis.SkillScanner = { scanFiles, parseZip, VERSION, RULES };
       renderReport(skills[0] || null, false);
     } else {
       state.multi = true;
+      state.summarySort = { key: "name", dir: "asc" }; // fresh scan, fresh order
       renderSummary(result);
     }
   }
@@ -3532,13 +3573,62 @@ globalThis.SkillScanner = { scanFiles, parseZip, VERSION, RULES };
     return (skill && skill.name) ? skill.name : "(unknown)";
   }
 
-  function renderSummary(result) {
-    var body = refs.summaryBody;
-    if (!body) return;
-    body.innerHTML = "";
-    var skills = result.skills;
+  // --- summary sorting -------------------------------------------------------
+  var GRADE_ORDER = { A: 0, B: 1, C: 2, D: 3, F: 4 };
 
+  function summarySortValue(skill, key) {
+    switch (key) {
+      case "grade": return GRADE_ORDER[(skill.grade || "F").toUpperCase()] != null
+        ? GRADE_ORDER[(skill.grade || "F").toUpperCase()] : 9;
+      case "score": return numOr(skill.score, 0);
+      case "crit": return (skill.summary && skill.summary.critical) || 0;
+      case "find": return (skill.findings && skill.findings.length) || 0;
+      default: return safeName(skill).toLowerCase();
+    }
+  }
+
+  function sortedSkills(skills) {
+    var key = state.summarySort.key;
+    var dir = state.summarySort.dir === "desc" ? -1 : 1;
+    return skills.slice().sort(function (a, b) {
+      var va = summarySortValue(a, key);
+      var vb = summarySortValue(b, key);
+      if (va < vb) return -1 * dir;
+      if (va > vb) return 1 * dir;
+      // stable, human-friendly tiebreak: name ascending
+      var na = safeName(a).toLowerCase();
+      var nb = safeName(b).toLowerCase();
+      return na < nb ? -1 : na > nb ? 1 : 0;
+    });
+  }
+
+  function updateSortHeaders() {
+    var ths = document.querySelectorAll(".summary-table th[data-sort-key]");
+    for (var i = 0; i < ths.length; i++) {
+      var th = ths[i];
+      if (th.getAttribute("data-sort-key") === state.summarySort.key) {
+        th.setAttribute("aria-sort", state.summarySort.dir === "desc" ? "descending" : "ascending");
+      } else {
+        th.removeAttribute("aria-sort");
+      }
+    }
+  }
+
+  function toggleSummarySort(key) {
+    if (state.summarySort.key === key) {
+      state.summarySort.dir = state.summarySort.dir === "asc" ? "desc" : "asc";
+    } else {
+      // sensible first direction per column: text ascending, numbers "worst first"
+      state.summarySort.key = key;
+      state.summarySort.dir = (key === "name" || key === "grade" || key === "score") ? "asc" : "desc";
+    }
+    if (state.result && state.multi) renderSummaryRows(state.result);
+  }
+
+  function renderSummary(result) {
+    state.activeSkill = null; // back at the overview
     if (refs.summarySub) {
+      var skills = result.skills;
       var totalCrit = skills.reduce(function (a, s) {
         return a + ((s.summary && s.summary.critical) || 0);
       }, 0);
@@ -3546,6 +3636,17 @@ globalThis.SkillScanner = { scanFiles, parseZip, VERSION, RULES };
         skills.length + " skills detected · " +
         totalCrit + (totalCrit === 1 ? " critical finding" : " critical findings") + " total";
     }
+    renderSummaryRows(result);
+    showView("view-summary");
+    window.scrollTo(0, 0);
+  }
+
+  function renderSummaryRows(result) {
+    var body = refs.summaryBody;
+    if (!body) return;
+    body.innerHTML = "";
+    updateSortHeaders();
+    var skills = sortedSkills(result.skills);
 
     skills.forEach(function (skill, i) {
       var tr = el("tr", "summary-row");
@@ -3605,9 +3706,6 @@ globalThis.SkillScanner = { scanFiles, parseZip, VERSION, RULES };
 
       body.appendChild(tr);
     });
-
-    showView("view-summary");
-    window.scrollTo(0, 0);
   }
 
   function numOr(v, d) { return (typeof v === "number" && isFinite(v)) ? v : d; }
@@ -4033,8 +4131,9 @@ globalThis.SkillScanner = { scanFiles, parseZip, VERSION, RULES };
     return d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate());
   }
 
-  function exportMarkdown(skill) {
-    if (!skill) { toast("Nothing to export."); return; }
+  // Build the markdown body for ONE skill (array of lines). Shared by the
+  // single-report export and the export-all bundle.
+  function buildSkillMarkdownLines(skill) {
     var L = [];
     var version = (state.result && state.result.version) ||
       (typeof SkillScanner !== "undefined" && SkillScanner.VERSION) || "";
@@ -4124,19 +4223,74 @@ globalThis.SkillScanner = { scanFiles, parseZip, VERSION, RULES };
       });
     }
 
+    return L;
+  }
+
+  function exportMarkdown(skill) {
+    if (!skill) { toast("Nothing to export."); return; }
+    var version = (state.result && state.result.version) ||
+      (typeof SkillScanner !== "undefined" && SkillScanner.VERSION) || "";
+    var L = buildSkillMarkdownLines(skill);
     L.push("---");
     L.push("");
     L.push("_Generated by Skillspector" + (version ? (" " + version) : "") + " — offline static analysis._");
-
     var md = L.join("\n");
     var fname = "skillspector-" + slugify(safeName(skill)) + "-" + dateStamp() + ".md";
     if (download(fname, md, "text/markdown")) toast("Exported " + fname);
   }
 
+  // One markdown file covering EVERY skill in the scan: overview table first,
+  // then each skill's full report (headings demoted one level).
+  function exportAllMarkdown() {
+    var result = state.result;
+    if (!result || !Array.isArray(result.skills) || !result.skills.length) {
+      toast("Nothing to export.");
+      return;
+    }
+    var skills = sortedSkills(result.skills); // export in the on-screen order
+    var version = result.version || "";
+    var L = [];
+    L.push("# Skillspector scan — " + skills.length + (skills.length === 1 ? " skill" : " skills"));
+    L.push("");
+    L.push("- **Scanned:** " + (result.scannedAt || new Date().toISOString()) +
+      (version ? ("  ·  **Engine:** " + version) : ""));
+    var totalCrit = skills.reduce(function (a, s) { return a + ((s.summary && s.summary.critical) || 0); }, 0);
+    L.push("- **Critical findings:** " + totalCrit);
+    L.push("");
+    L.push("## Overview");
+    L.push("");
+    L.push("| Skill | Grade | Score | Criticals | Findings |");
+    L.push("| --- | :-: | --: | --: | --: |");
+    skills.forEach(function (s) {
+      L.push("| " + safeName(s) +
+        " | " + (s.grade || "?") +
+        " | " + numOr(s.score, 0) +
+        " | " + ((s.summary && s.summary.critical) || 0) +
+        " | " + ((s.findings && s.findings.length) || 0) + " |");
+    });
+    L.push("");
+    skills.forEach(function (s) {
+      L.push("---");
+      L.push("");
+      buildSkillMarkdownLines(s).forEach(function (line) {
+        // demote headings so the bundle keeps a single H1
+        L.push(/^#{1,5}\s/.test(line) ? "#" + line : line);
+      });
+    });
+    L.push("---");
+    L.push("");
+    L.push("_Generated by Skillspector" + (version ? (" " + version) : "") + " — offline static analysis._");
+
+    var fname = "skillspector-scan-" + dateStamp() + ".md";
+    if (download(fname, L.join("\n"), "text/markdown")) toast("Exported " + fname);
+  }
+
   function exportJson() {
     if (!state.result) { toast("Nothing to export."); return; }
+    // The JSON payload is always the FULL scan result; name it accordingly.
     var name = state.activeSkill ? safeName(state.activeSkill) :
-      (state.result.skills && state.result.skills[0] ? safeName(state.result.skills[0]) : "scan");
+      (state.multi ? "scan" :
+        (state.result.skills && state.result.skills[0] ? safeName(state.result.skills[0]) : "scan"));
     var text;
     try {
       text = JSON.stringify(state.result, null, 2);
@@ -4418,6 +4572,15 @@ globalThis.SkillScanner = { scanFiles, parseZip, VERSION, RULES };
     });
     on($("exportMd"), "click", function () { exportMarkdown(state.activeSkill); });
     on($("exportJson"), "click", function () { exportJson(); });
+    on($("summaryExportMd"), "click", function () { exportAllMarkdown(); });
+    on($("summaryExportJson"), "click", function () { exportJson(); });
+
+    // sortable summary columns
+    var sortThs = document.querySelectorAll(".summary-table th[data-sort-key]");
+    Array.prototype.forEach.call(sortThs, function (th) {
+      var btn = th.querySelector(".th-sort");
+      on(btn, "click", function () { toggleSummarySort(th.getAttribute("data-sort-key")); });
+    });
     on($("expandAll"), "click", function () { setAllFindings(true); });
     on($("collapseAll"), "click", function () { setAllFindings(false); });
 
