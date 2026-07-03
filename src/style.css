@@ -290,6 +290,30 @@ body::after {
   to { opacity: 1; transform: none; }
 }
 
+/* ---------- Workbench (intake ⇄ scanning side by side) ---------- */
+.workbench {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(18px, 3vw, 36px);
+}
+.workbench > .view { min-width: 0; flex: 1 1 auto; }
+/* while scanning: two columns — drop zone stays put, scanner slides in beside it */
+.workbench.is-scanning .view-intake { flex: 1 1 52%; }
+.workbench.is-scanning .view-scanning { flex: 1 1 48%; min-height: 60vh; }
+.workbench.is-scanning .view-intake .intake-inner {
+  opacity: 0.45;
+  filter: saturate(0.5);
+  transition: opacity 0.35s var(--ease), filter 0.35s var(--ease);
+}
+.workbench.is-scanning .view-intake { pointer-events: none; }
+@media (max-width: 860px) {
+  .workbench.is-scanning { flex-direction: column; }
+  /* scanner first when stacked so the action stays in view */
+  .workbench.is-scanning .view-scanning { order: -1; width: 100%; min-height: 0; }
+  .workbench.is-scanning .view-intake { min-height: 0; }
+}
+
 /* ---------- Intake ---------- */
 .view-intake { min-height: 60vh; display: flex; align-items: center; }
 .intake-inner {

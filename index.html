@@ -297,6 +297,30 @@ body::after {
   to { opacity: 1; transform: none; }
 }
 
+/* ---------- Workbench (intake ⇄ scanning side by side) ---------- */
+.workbench {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(18px, 3vw, 36px);
+}
+.workbench > .view { min-width: 0; flex: 1 1 auto; }
+/* while scanning: two columns — drop zone stays put, scanner slides in beside it */
+.workbench.is-scanning .view-intake { flex: 1 1 52%; }
+.workbench.is-scanning .view-scanning { flex: 1 1 48%; min-height: 60vh; }
+.workbench.is-scanning .view-intake .intake-inner {
+  opacity: 0.45;
+  filter: saturate(0.5);
+  transition: opacity 0.35s var(--ease), filter 0.35s var(--ease);
+}
+.workbench.is-scanning .view-intake { pointer-events: none; }
+@media (max-width: 860px) {
+  .workbench.is-scanning { flex-direction: column; }
+  /* scanner first when stacked so the action stays in view */
+  .workbench.is-scanning .view-scanning { order: -1; width: 100%; min-height: 0; }
+  .workbench.is-scanning .view-intake { min-height: 0; }
+}
+
 /* ---------- Intake ---------- */
 .view-intake { min-height: 60vh; display: flex; align-items: center; }
 .intake-inner {
@@ -1079,6 +1103,9 @@ body::after {
   <main id="main" class="app-main" role="main">
     <!-- Views are toggled by ui.js; all live here -->
 
+    <!-- Workbench: intake + scanning live side by side while a scan runs -->
+    <div class="workbench" id="workbench">
+
     <!-- DROP / INTAKE VIEW -->
     <section id="view-intake" class="view view-intake" aria-label="Upload a skill to scan">
       <div class="intake-inner">
@@ -1145,6 +1172,8 @@ body::after {
         <p class="scanner-status" id="scanStatus">Reading bundle…</p>
       </div>
     </section>
+
+    </div><!-- /workbench -->
 
     <!-- SUMMARY (MULTI-SKILL) VIEW -->
     <section id="view-summary" class="view view-summary" aria-label="Scan summary" hidden>
@@ -2977,7 +3006,8 @@ globalThis.SkillScanner = { scanFiles, parseZip, VERSION, RULES };
     activeSkill: null,   // SkillReport currently shown
     multi: false,        // came from a multi-skill summary?
     filters: null,       // Set of active severities for report view
-    tickerTimer: null
+    tickerTimer: null,
+    scanning: false      // a scan is in flight (intake stays visible beside the scanner)
   };
 
   var SEVERITIES = ["critical", "high", "medium", "low", "info"];
@@ -3075,16 +3105,28 @@ globalThis.SkillScanner = { scanFiles, parseZip, VERSION, RULES };
   //  VIEW SWITCHING
   // =========================================================================
   function showView(name) {
+    // "view-scanning" is special: the scanner panel sits BESIDE the intake
+    // drop zone instead of replacing it, so both stay visible.
+    var sideBySide = name === "view-scanning";
     Object.keys(views).forEach(function (k) {
       var v = views[k];
       if (!v) return;
-      if (k === name) v.removeAttribute("hidden");
+      var show = k === name || (sideBySide && k === "view-intake");
+      if (show) v.removeAttribute("hidden");
       else v.setAttribute("hidden", "");
     });
+    if (refs.workbench) refs.workbench.classList.toggle("is-scanning", sideBySide);
+    // While scanning, the visible intake must not take input or focus.
+    var intake = views["view-intake"];
+    if (intake) {
+      if (sideBySide) intake.setAttribute("inert", "");
+      else intake.removeAttribute("inert");
+    }
   }
 
   function resetToIntake() {
     stopTicker();
+    state.scanning = false;
     state.result = null;
     state.activeSkill = null;
     state.multi = false;
@@ -3304,6 +3346,7 @@ globalThis.SkillScanner = { scanFiles, parseZip, VERSION, RULES };
 
   function runScan(entries, opts) {
     opts = opts || {};
+    if (state.scanning) return; // intake stays visible while scanning; ignore re-entry
     hideError();
 
     if (!entries || !entries.length) {
@@ -3315,6 +3358,7 @@ globalThis.SkillScanner = { scanFiles, parseZip, VERSION, RULES };
       return;
     }
 
+    state.scanning = true;
     startTicker(entries);
     showView("view-scanning");
     setScanStatus("Analyzing " + entries.length + (entries.length === 1 ? " file…" : " files…"));
@@ -3335,9 +3379,11 @@ globalThis.SkillScanner = { scanFiles, parseZip, VERSION, RULES };
       });
     }).then(function (result) {
       stopTicker();
+      state.scanning = false;
       onScanComplete(result);
     }).catch(function (err) {
       stopTicker();
+      state.scanning = false;
       showView("view-intake");
       showError("Scan failed.", (err && err.message) ? String(err.message) : "Unexpected error while scanning.");
     });
@@ -4070,6 +4116,7 @@ globalThis.SkillScanner = { scanFiles, parseZip, VERSION, RULES };
   //  INTAKE EVENT WIRING
   // =========================================================================
   function handleDataTransfer(dt) {
+    if (state.scanning) return;
     hideError();
     // Show a quick "reading" state before scan kicks in (folders can be slow).
     collectFromDataTransfer(dt).then(function (res) {
@@ -4094,6 +4141,7 @@ globalThis.SkillScanner = { scanFiles, parseZip, VERSION, RULES };
   }
 
   function handleFileList(fileList, opts) {
+    if (state.scanning) return;
     opts = opts || {};
     hideError();
     var files = Array.prototype.slice.call(fileList || []);
@@ -4184,6 +4232,7 @@ globalThis.SkillScanner = { scanFiles, parseZip, VERSION, RULES };
     refs.themeToggle = $("themeToggle");
     refs.toast = $("toast");
     refs.engineVersion = $("engineVersion");
+    refs.workbench = $("workbench");
 
     // engine version chip
     try {
@@ -4207,8 +4256,8 @@ globalThis.SkillScanner = { scanFiles, parseZip, VERSION, RULES };
     } catch (e) {}
 
     // ---- drop zone: click + keyboard opens picker ----
-    var openFolderPicker = function () { if (refs.folderInput) refs.folderInput.click(); };
-    var openZipPicker = function () { if (refs.zipInput) refs.zipInput.click(); };
+    var openFolderPicker = function () { if (!state.scanning && refs.folderInput) refs.folderInput.click(); };
+    var openZipPicker = function () { if (!state.scanning && refs.zipInput) refs.zipInput.click(); };
 
     on(refs.dropZone, "click", function () {
       // Default click on the big zone → folder picker (most common intent).
@@ -4267,11 +4316,11 @@ globalThis.SkillScanner = { scanFiles, parseZip, VERSION, RULES };
       }
     });
     on(window, "drop", function (e) {
-      if (views["view-intake"] && !views["view-intake"].hasAttribute("hidden")) {
+      if (!state.scanning && views["view-intake"] && !views["view-intake"].hasAttribute("hidden")) {
         prevent(e);
         if (e.dataTransfer) handleDataTransfer(e.dataTransfer);
       } else {
-        // avoid accidental file open navigation elsewhere
+        // avoid accidental file open navigation elsewhere (incl. mid-scan)
         e.preventDefault();
       }
     });

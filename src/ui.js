@@ -41,7 +41,8 @@
     activeSkill: null,   // SkillReport currently shown
     multi: false,        // came from a multi-skill summary?
     filters: null,       // Set of active severities for report view
-    tickerTimer: null
+    tickerTimer: null,
+    scanning: false      // a scan is in flight (intake stays visible beside the scanner)
   };
 
   var SEVERITIES = ["critical", "high", "medium", "low", "info"];
@@ -139,16 +140,28 @@
   //  VIEW SWITCHING
   // =========================================================================
   function showView(name) {
+    // "view-scanning" is special: the scanner panel sits BESIDE the intake
+    // drop zone instead of replacing it, so both stay visible.
+    var sideBySide = name === "view-scanning";
     Object.keys(views).forEach(function (k) {
       var v = views[k];
       if (!v) return;
-      if (k === name) v.removeAttribute("hidden");
+      var show = k === name || (sideBySide && k === "view-intake");
+      if (show) v.removeAttribute("hidden");
       else v.setAttribute("hidden", "");
     });
+    if (refs.workbench) refs.workbench.classList.toggle("is-scanning", sideBySide);
+    // While scanning, the visible intake must not take input or focus.
+    var intake = views["view-intake"];
+    if (intake) {
+      if (sideBySide) intake.setAttribute("inert", "");
+      else intake.removeAttribute("inert");
+    }
   }
 
   function resetToIntake() {
     stopTicker();
+    state.scanning = false;
     state.result = null;
     state.activeSkill = null;
     state.multi = false;
@@ -368,6 +381,7 @@
 
   function runScan(entries, opts) {
     opts = opts || {};
+    if (state.scanning) return; // intake stays visible while scanning; ignore re-entry
     hideError();
 
     if (!entries || !entries.length) {
@@ -379,6 +393,7 @@
       return;
     }
 
+    state.scanning = true;
     startTicker(entries);
     showView("view-scanning");
     setScanStatus("Analyzing " + entries.length + (entries.length === 1 ? " file…" : " files…"));
@@ -399,9 +414,11 @@
       });
     }).then(function (result) {
       stopTicker();
+      state.scanning = false;
       onScanComplete(result);
     }).catch(function (err) {
       stopTicker();
+      state.scanning = false;
       showView("view-intake");
       showError("Scan failed.", (err && err.message) ? String(err.message) : "Unexpected error while scanning.");
     });
@@ -1134,6 +1151,7 @@
   //  INTAKE EVENT WIRING
   // =========================================================================
   function handleDataTransfer(dt) {
+    if (state.scanning) return;
     hideError();
     // Show a quick "reading" state before scan kicks in (folders can be slow).
     collectFromDataTransfer(dt).then(function (res) {
@@ -1158,6 +1176,7 @@
   }
 
   function handleFileList(fileList, opts) {
+    if (state.scanning) return;
     opts = opts || {};
     hideError();
     var files = Array.prototype.slice.call(fileList || []);
@@ -1248,6 +1267,7 @@
     refs.themeToggle = $("themeToggle");
     refs.toast = $("toast");
     refs.engineVersion = $("engineVersion");
+    refs.workbench = $("workbench");
 
     // engine version chip
     try {
@@ -1271,8 +1291,8 @@
     } catch (e) {}
 
     // ---- drop zone: click + keyboard opens picker ----
-    var openFolderPicker = function () { if (refs.folderInput) refs.folderInput.click(); };
-    var openZipPicker = function () { if (refs.zipInput) refs.zipInput.click(); };
+    var openFolderPicker = function () { if (!state.scanning && refs.folderInput) refs.folderInput.click(); };
+    var openZipPicker = function () { if (!state.scanning && refs.zipInput) refs.zipInput.click(); };
 
     on(refs.dropZone, "click", function () {
       // Default click on the big zone → folder picker (most common intent).
@@ -1331,11 +1351,11 @@
       }
     });
     on(window, "drop", function (e) {
-      if (views["view-intake"] && !views["view-intake"].hasAttribute("hidden")) {
+      if (!state.scanning && views["view-intake"] && !views["view-intake"].hasAttribute("hidden")) {
         prevent(e);
         if (e.dataTransfer) handleDataTransfer(e.dataTransfer);
       } else {
-        // avoid accidental file open navigation elsewhere
+        // avoid accidental file open navigation elsewhere (incl. mid-scan)
         e.preventDefault();
       }
     });
