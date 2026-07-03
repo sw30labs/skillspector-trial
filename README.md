@@ -1,6 +1,22 @@
 # Skillspector
 
+![tests](https://img.shields.io/badge/tests-74%20passing-2ce6c8?style=flat-square)
+![dependencies](https://img.shields.io/badge/dependencies-none-38bdf8?style=flat-square)
+![single file](https://img.shields.io/badge/app-single%20HTML%20file-8b5cf6?style=flat-square)
+![offline](https://img.shields.io/badge/runs-100%25%20offline-16a766?style=flat-square)
+![engine](https://img.shields.io/badge/engine-1.0.0-64748b?style=flat-square)
+
 A single-file, offline web app that scans Claude skills for **security** and **quality** problems. Drag a skill in — a folder, a `.zip`, or a `.skill` file — and get a graded report with findings, evidence, and a capability breakdown. Everything runs client-side in the browser; nothing is uploaded and there are no network calls.
+
+![Skillspector tour — drop zone, live scan, graded report, findings, multi-skill summary](docs/skillspector-tour.gif)
+
+## Screenshots
+
+| | |
+| --- | --- |
+| ![Drop zone with the scanner idling in standby](docs/screenshots/01-standby.png) *Workbench — scanner on standby* | ![Scan in flight: beam sweep and file ticker](docs/screenshots/02-scanning.png) *Inspecting a bundle* |
+| ![Graded report: F gauge, severity pills, capability surface](docs/screenshots/03-report.png) *Report — grade gauge & severity pills* | ![Findings list with evidence excerpts expanded](docs/screenshots/04-findings.png) *Findings with evidence* |
+| ![Multi-skill scan summary with sortable columns](docs/screenshots/05-summary.png) *Multi-skill summary — sortable, bulk export* | |
 
 ## Use it
 
