@@ -2,9 +2,10 @@
 // Run: node tests/run-tests.mjs
 import assert from "node:assert";
 import { readFileSync, readdirSync, statSync } from "node:fs";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { dirname, resolve, join, relative, sep } from "node:path";
 import { deflateRawSync } from "node:zlib";
+import { execFileSync } from "node:child_process";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const engine = await import(resolve(__dirname, "../src/engine.js"));
@@ -490,6 +491,66 @@ await test("rm flags in any order (-fr, -r -f, --recursive --force) fire SEC-004
 await test("arg-list form ['rm','-rf','/'] fires SEC-004 critical", async () => {
   const s = await scanWith("reg/wipe.py", "import subprocess\nsubprocess.run(['rm','-rf','/'])\n");
   assert.ok(critCount(s, "SEC-004") >= 1, "expected critical SEC-004 for arg-list rm");
+});
+// Regression: a matching-but-benign arg list (non-root target) used to make the
+// exec() loop spin forever because rmArgListRe() lacked the /g flag. Run the
+// scan in a subprocess with a hard timeout so a re-regression FAILS instead of
+// hanging the whole suite.
+function scanInSubprocess(path, content, timeoutMs) {
+  const engineUrl = pathToFileURL(resolve(__dirname, "../src/engine.js")).href;
+  const prog =
+    "import { scanFiles } from " + JSON.stringify(engineUrl) + ";\n" +
+    "const enc = new TextEncoder();\n" +
+    "const entries = [\n" +
+    "  { path: 'reg/SKILL.md', bytes: enc.encode(" + JSON.stringify(GOOD_FM) + ") },\n" +
+    "  { path: " + JSON.stringify(path) + ", bytes: enc.encode(" + JSON.stringify(content) + ") },\n" +
+    "];\n" +
+    "const res = await scanFiles(entries);\n" +
+    "const s = res.skills[0];\n" +
+    "process.stdout.write(JSON.stringify(s.findings.map(f => ({ ruleId: f.ruleId, severity: f.severity }))));\n";
+  const out = execFileSync(process.execPath, ["--input-type=module", "-e", prog], {
+    timeout: timeoutMs || 10000,
+    encoding: "utf8",
+  });
+  return JSON.parse(out);
+}
+await test("SAFE arg-list ['rm','-rf','/tmp/../important'] completes (no hang) and no arg-list critical", async () => {
+  let findings;
+  try {
+    findings = scanInSubprocess(
+      "reg/wipe.py",
+      "import subprocess\nsubprocess.run(['rm', '-rf', '/tmp/../important'])\n",
+      10000
+    );
+  } catch (e) {
+    if (e && (e.killed || String(e.message).indexOf("ETIMEDOUT") !== -1)) {
+      assert.fail("engine hung on benign rm arg-list (rmArgListRe missing /g?)");
+    }
+    throw e;
+  }
+  assert.strictEqual(
+    findings.filter((f) => f.ruleId === "SEC-004").length, 0,
+    "non-root arg-list delete must not fire SEC-004"
+  );
+});
+await test("benign then dangerous arg-list on ONE line: still fires and terminates", async () => {
+  let findings;
+  try {
+    findings = scanInSubprocess(
+      "reg/wipe.py",
+      "import subprocess\nsubprocess.run(['rm','-rf','./build']); subprocess.run(['rm','-rf','/'])\n",
+      10000
+    );
+  } catch (e) {
+    if (e && (e.killed || String(e.message).indexOf("ETIMEDOUT") !== -1)) {
+      assert.fail("engine hung scanning two arg-lists on one line");
+    }
+    throw e;
+  }
+  assert.ok(
+    findings.some((f) => f.ruleId === "SEC-004" && f.severity === "critical"),
+    "dangerous second arg-list must still fire SEC-004 critical"
+  );
 });
 await test("SAFE rm -rf ./build does NOT fire SEC-004", async () => {
   const s = await scanWith("reg/build.sh", "#!/bin/bash\nrm -rf ./build\n");

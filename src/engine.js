@@ -635,7 +635,10 @@ function rmRootRe() {
 // and a bare '/' or '~' or '$HOME' target as quoted items.
 function rmArgListRe() {
   // e.g. ['rm', '-rf', '/']  or  ["rm","-r","-f","/*"]
-  return /\[\s*["']rm["']\s*(?:,\s*["'][^"']*["']\s*)*\]/i;
+  // MUST be global: callers loop `while (re.exec(line))`. Without /g, exec()
+  // never advances past a matching-but-benign list (e.g. ['rm','-rf','/tmp/x'])
+  // and the scan loops forever.
+  return /\[\s*["']rm["']\s*(?:,\s*["'][^"']*["']\s*)*\]/gi;
 }
 function rmArgListIsDangerous(listText) {
   // must contain rm, some r+f flags, and a root target, as separate items
