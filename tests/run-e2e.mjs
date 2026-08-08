@@ -596,16 +596,33 @@ try {
     await page.setViewport(1600, 1100);
   });
 
-  await test("a reload with no bridge still scans (offline mode)", async () => {
-    await page.eval(`(() => { window.__origFetch = window.fetch; })()`);
-    await page.goto(BASE + "/#overview");
-    await page.waitForEval('document.getElementById("boot").classList.contains("done")', 15000, "reboot");
-    await page.eval('window.SkillBridge.connect = () => Promise.resolve(null)');
-    await page.click("#demoBtn");
-    await page.waitForEval(
-      '(() => { const d = globalThis.__skillspectorDeck; return d && d.state.result ? 1 : null; })()',
-      20000, "the offline scan");
-    assert.strictEqual(await page.eval("globalThis.__skillspectorDeck.state.active.grade"), "F");
+  await test("the built file scans straight off file:// with no bridge at all", async () => {
+    // The strongest form of the offline claim: no server, no origin, no fetch.
+    const offline = await Page.open(cdp, "file://" + resolve(__dirname, "..", "index.html"));
+    try {
+      await offline.setViewport(1400, 900);
+      await offline.waitForEval('document.getElementById("boot").classList.contains("done")', 15000, "boot");
+      assert.strictEqual(await offline.eval("location.protocol"), "file:");
+      assert.strictEqual(await offline.eval("window.SkillBridge.reachable"), false);
+      assert.strictEqual(await offline.eval('document.getElementById("badge-bridge").textContent'), "BRIDGE OFFLINE");
+      assert.match(
+        await offline.eval('document.getElementById("backend-status").textContent'),
+        /no bridge on this origin/);
+
+      await offline.click("#demoBtn");
+      await offline.waitForEval(
+        '(() => { const d = globalThis.__skillspectorDeck; return d && d.state.result ? 1 : null; })()',
+        20000, "the offline scan");
+      assert.strictEqual(await offline.eval("globalThis.__skillspectorDeck.state.active.grade"), "F");
+      assert.ok(await offline.eval("globalThis.__skillspectorDeck.state.active.findings.length") > 0);
+
+      // The analyst must be inert, not broken, when there is nothing to talk to.
+      assert.strictEqual(await offline.eval('document.getElementById("runAnalysisBtn").disabled'), true);
+      assert.strictEqual(await offline.eval('document.getElementById("chatBtn").disabled'), true);
+      assert.deepStrictEqual(offline.consoleErrors, [], offline.consoleErrors.join("\n"));
+    } finally {
+      await cdp.send("Target.closeTarget", { targetId: offline.targetId }).catch(() => {});
+    }
   });
 } finally {
   console.log("\n" + "=".repeat(52));

@@ -117,9 +117,10 @@ export class CDP {
 }
 
 export class Page {
-  constructor(cdp, sessionId) {
+  constructor(cdp, sessionId, targetId) {
     this.cdp = cdp;
     this.sessionId = sessionId;
+    this.targetId = targetId;
     this.consoleErrors = [];
     this.consoleAll = [];
     cdp.on((msg) => {
@@ -141,7 +142,7 @@ export class Page {
   static async open(cdp, url) {
     const { targetId } = await cdp.send("Target.createTarget", { url: "about:blank" });
     const { sessionId } = await cdp.send("Target.attachToTarget", { targetId, flatten: true });
-    const page = new Page(cdp, sessionId);
+    const page = new Page(cdp, sessionId, targetId);
     await cdp.send("Runtime.enable", {}, sessionId);
     await cdp.send("Page.enable", {}, sessionId);
     await page.goto(url);
