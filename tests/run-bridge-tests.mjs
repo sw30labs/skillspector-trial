@@ -839,6 +839,42 @@ await test("an oversized body gets a 413, not a dropped connection", async () =>
     assert.match(r.data.error, /too large/);
   } finally { b.close(); }
 });
+await test("a chunked oversize body is cut short with a 413, not left hanging", async () => {
+  // No Content-Length to pre-check, so this exercises the streaming guard —
+  // where destroying the socket would have killed the response before it
+  // reached the client.
+  analyst.resetForTests();
+  const b = await startBridge();
+  const port = new URL(b.url).port;
+  try {
+    const result = await new Promise((ok) => {
+      const req = http.request(
+        {
+          host: "127.0.0.1", port, path: "/api/analyze", method: "POST",
+          headers: { "Content-Type": "application/json", "Transfer-Encoding": "chunked" },
+        },
+        (res) => {
+          let body = "";
+          res.on("data", (c) => (body += c));
+          res.on("end", () => ok({ status: res.statusCode, body }));
+        },
+      );
+      req.on("error", (e) => ok({ error: e.message }));
+      const chunk = "x".repeat(256 * 1024);
+      let sent = 0;
+      (function pump() {
+        while (sent < 8 * 1024 * 1024) {
+          sent += chunk.length;
+          if (!req.write(chunk)) { req.once("drain", pump); return; }
+        }
+        req.end();
+      })();
+      setTimeout(() => ok({ error: "timed out — the server never answered" }), 10000);
+    });
+    assert.strictEqual(result.status, 413, result.error || result.body);
+    assert.match(result.body, /too large/);
+  } finally { b.close(); }
+});
 await test("only loopback bind hosts are accepted", () => {
   assert.strictEqual(bridge.isLoopbackHost("127.0.0.1"), true);
   assert.strictEqual(bridge.isLoopbackHost("::1"), true);
