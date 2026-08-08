@@ -298,7 +298,7 @@ stored + deflate), root detection (0, 1, n, nested), every SEC rule fires on the
 fixture, clean-skill scores ≥ 90 with zero critical/high, sloppy-skill triggers the expected
 QUA set, scoring math, cap-at-3 logic, invisible-unicode excerpt escaping.
 
-**`node tests/run-bridge-tests.mjs`** — bridge + analyst, 76 tests, driven by a fake OMLX
+**`node tests/run-bridge-tests.mjs`** — bridge + analyst, 77 tests, driven by a fake OMLX
 server so no model is needed. JSON extraction (fences, prose, braces inside strings, the
 strict-envelope regression), the parsed loopback guard and the forged-Host rejection on a
 raw socket, a connection dying mid-body, truncation-aware repair and its billing, the
@@ -306,7 +306,7 @@ normalisers and verdict matching, fence forging, the full three-pass pipeline, s
 locking across both analyze and chat, error propagation, and every HTTP route including its
 status codes.
 
-**`node tests/run-e2e.mjs`** — 42 tests end to end in real Chrome, driven over CDP by
+**`node tests/run-e2e.mjs`** — 42 tests end to end in real Chrome (52 with `--analyst`), driven over CDP by
 `tests/cdp.mjs` (zero deps; Node 22's global `WebSocket` is the whole client). Boots its own
 bridge on a free port. Covers the boot sequence, all six views, the palette, scanning the
 demo skill, KPI/gauge/pill/roster rendering, search + severity filtering + sorting, the

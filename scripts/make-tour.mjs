@@ -103,7 +103,11 @@ try {
     await waitFor(async () => {
       await grab();
       await pause(12000);   // one frame per 12s: a 7-minute review is ~35 frames
-      return page.eval('globalThis.__skillspectorDeck.state.analysis ? 1 : null').catch(() => null);
+      // state.analysis is populated after PASS 1 so triage can show early —
+      // the verdict is what says the run is actually over.
+      return page
+        .eval('(() => { const a = globalThis.__skillspectorDeck.state.analysis; return a && a.verdict ? 1 : null; })()')
+        .catch(() => null);
     }, 900_000, "the live review");
     await grab(12);
   }

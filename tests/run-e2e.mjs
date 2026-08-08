@@ -588,6 +588,8 @@ try {
       assert.ok(rendered.includes(answer.content.slice(0, 40)));
     });
 
+    // Frame the chat, not the verdict — 03 already shows the verdict panel.
+    await page.eval('document.getElementById("chat-log").scrollIntoView({ block: "center" })');
     await shot("06-analyst.png");
   } else {
     section("analyst — live OMLX review");

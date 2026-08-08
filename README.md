@@ -1,6 +1,6 @@
 # Skillspector
 
-![tests](https://img.shields.io/badge/tests-192%20passing-2ce6c8?style=flat-square)
+![tests](https://img.shields.io/badge/tests-193%20passing-2ce6c8?style=flat-square)
 ![e2e](https://img.shields.io/badge/e2e-real%20Chrome%20%2B%20real%20model-a78bfa?style=flat-square)
 ![dependencies](https://img.shields.io/badge/dependencies-none-38bdf8?style=flat-square)
 ![single file](https://img.shields.io/badge/app-single%20HTML%20file-8b5cf6?style=flat-square)
@@ -113,9 +113,11 @@ src/
 server/
   omlx.mjs        # OpenAI-compatible OMLX client (node stdlib only)
   analyst.mjs     # three-pass review pipeline, jobs, event ring
+scripts/
+  make-tour.mjs   # regenerates docs/skillspector-tour.gif from a real session
 tests/
   run-tests.mjs         # 74 engine tests
-  run-bridge-tests.mjs  # 49 bridge/analyst tests against a fake OMLX
+  run-bridge-tests.mjs  # 77 bridge/analyst tests against a fake OMLX
   run-e2e.mjs           # end-to-end in real Chrome; --analyst uses the real model
   cdp.mjs               # zero-dep Chrome DevTools Protocol driver
   fixtures/             # clean / evil / sloppy sample skills
@@ -126,9 +128,9 @@ tests/
 ```bash
 node build.mjs                   # regenerate index.html
 node tests/run-tests.mjs         # engine        → PASSED: 74
-node tests/run-bridge-tests.mjs  # bridge        → PASSED: 76
-node tests/run-e2e.mjs           # deck in Chrome (no model needed)
-node tests/run-e2e.mjs --analyst # + a live review against OMLX (minutes)
+node tests/run-bridge-tests.mjs  # bridge        → PASSED: 77
+node tests/run-e2e.mjs           # deck in Chrome → PASSED: 42 (no model needed)
+node tests/run-e2e.mjs --analyst # + a live review against OMLX → 52 (minutes)
 node tests/run-e2e.mjs --headful # watch it drive the browser
 ```
 
