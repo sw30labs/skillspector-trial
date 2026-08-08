@@ -1,6 +1,6 @@
 # Skillspector
 
-![tests](https://img.shields.io/badge/tests-123%20passing-2ce6c8?style=flat-square)
+![tests](https://img.shields.io/badge/tests-192%20passing-2ce6c8?style=flat-square)
 ![e2e](https://img.shields.io/badge/e2e-real%20Chrome%20%2B%20real%20model-a78bfa?style=flat-square)
 ![dependencies](https://img.shields.io/badge/dependencies-none-38bdf8?style=flat-square)
 ![single file](https://img.shields.io/badge/app-single%20HTML%20file-8b5cf6?style=flat-square)
@@ -81,15 +81,19 @@ Same provider contract as [contingency-atlas](https://github.com/) and [book-bud
 | `OMLX_API_KEY` | `test` |
 | `OMLX_MODEL` | `DeepSeek-V4-Flash-0731-MLX` |
 | `OMLX_TIMEOUT` | `300` (seconds per call) |
-| `OMLX_MAX_TOKENS` | `1200` |
+| `OMLX_MAX_TOKENS` | per-pass (1800 / 2400 / 1400); set it to pin one ceiling |
 
 **A local model is slow and that is fine** — a full review of a busy skill is a few minutes. The deck streams progress the whole way.
 
 ### Where your data goes
 
-Nowhere, by default. The scan is pure client-side JavaScript. The bridge binds loopback, refuses `/api/*` from anything that isn't loopback, and **refuses a non-loopback LLM endpoint outright** — skill bundles are untrusted third-party content and the prompts carry their text verbatim. Override that only if you mean it: `SKILLSPECTOR_ALLOW_REMOTE_LLM=1`.
+Nowhere, by default. The scan is pure client-side JavaScript.
 
-Prompts also frame bundle content as untrusted data: an instruction inside a skill telling the analyst to clear it is treated as evidence of injection, not as an instruction.
+The bridge checks loopback three ways, because any one alone is bypassable: it binds a loopback address, it requires the client socket to be loopback, and it requires the request to *name* a loopback host (`Host`, and any `Origin`/`Referer`). That last one is what stops DNS rebinding — in that attack the browser genuinely is on your machine, so the socket check passes; the giveaway is the name the page used.
+
+It also **refuses a non-loopback LLM endpoint outright**, with the hostname parsed rather than prefix-matched (`127.0.0.1.evil.tld` is not loopback, and wildcard-DNS services hand out names like that for free). Skill bundles are untrusted third-party content and the prompts carry their text verbatim. Override only if you mean it: `SKILLSPECTOR_ALLOW_REMOTE_LLM=1`.
+
+Prompts frame bundle content as untrusted data, and a bundle cannot forge the fence that says so: marker-shaped lines in a skill's own text are defanged before interpolation, so a SKILL.md that writes `----- END UNTRUSTED SKILL.md -----` into itself cannot continue as trusted instructions. An instruction inside a skill telling the analyst to clear it is treated as evidence of injection, not as an instruction.
 
 ## Project layout
 
@@ -122,7 +126,7 @@ tests/
 ```bash
 node build.mjs                   # regenerate index.html
 node tests/run-tests.mjs         # engine        → PASSED: 74
-node tests/run-bridge-tests.mjs  # bridge        → PASSED: 49
+node tests/run-bridge-tests.mjs  # bridge        → PASSED: 76
 node tests/run-e2e.mjs           # deck in Chrome (no model needed)
 node tests/run-e2e.mjs --analyst # + a live review against OMLX (minutes)
 node tests/run-e2e.mjs --headful # watch it drive the browser

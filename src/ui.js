@@ -114,6 +114,8 @@
     pollMisses: 0,
     poll: null,
     chat: [],
+    chatSeq: 0,        // identity for the in-flight question
+    chatBusy: false,
     bridgeOnline: false,
     models: []
   };

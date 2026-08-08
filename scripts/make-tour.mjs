@@ -28,7 +28,7 @@ const OUT = (() => {
   return i !== -1 && argv[i + 1] ? resolve(argv[i + 1]) : resolve(ROOT, "docs/skillspector-tour.gif");
 })();
 
-const W = 1280, H = 800, FPS = 6, GIF_WIDTH = 960;
+const W = 1280, H = 800, FPS = 6, GIF_WIDTH = 880;
 const frameDir = mkdtempSync(join(tmpdir(), "skillspector-tour-"));
 let frame = 0;
 
@@ -64,7 +64,12 @@ try {
   // The drifting starfield changes every pixel of every frame, which defeats
   // GIF inter-frame compression — a 2 MB tour for an otherwise static deck.
   // The deck reads the same without it.
-  await page.eval('(() => { const c = document.getElementById("bg-canvas"); if (c) c.style.display = "none"; })()');
+  await page.eval(`(() => {
+    for (const id of ["bg-canvas", "grain"]) {
+      const el = document.getElementById(id);
+      if (el) el.style.display = "none";
+    }
+  })()`);
   await grab(8);                                            // standby
 
   await page.click("#demoBtn");                             // scan animation
@@ -112,10 +117,14 @@ try {
   const palette = join(frameDir, "palette.png");
   const input = join(frameDir, "f-%04d.png");
   const scale = `scale=${GIF_WIDTH}:-1:flags=lanczos`;
+  // dither=none is not cosmetic here: ordered dithering sprays per-pixel noise
+  // that differs every frame, which defeats GIF inter-frame compression — the
+  // same tour weighed 2.1 MB with bayer and ~150 KB without. A flat dark UI has
+  // no gradients to dither anyway.
   execFileSync("ffmpeg", ["-y", "-loglevel", "error", "-framerate", String(FPS), "-i", input,
-    "-vf", `${scale},palettegen=stats_mode=diff`, palette]);
+    "-vf", `${scale},palettegen=stats_mode=diff:max_colors=128`, palette]);
   execFileSync("ffmpeg", ["-y", "-loglevel", "error", "-framerate", String(FPS), "-i", input, "-i", palette,
-    "-lavfi", `${scale}[x];[x][1:v]paletteuse=dither=bayer:bayer_scale=3`, "-loop", "0", OUT]);
+    "-lavfi", `${scale}[x];[x][1:v]paletteuse=dither=none`, "-loop", "0", OUT]);
   const size = execFileSync("du", ["-h", OUT]).toString().split("\t")[0];
   console.log(`wrote ${OUT} (${size})`);
 } finally {

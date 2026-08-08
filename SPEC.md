@@ -196,9 +196,20 @@ Views (sidebar order), each a `.view` toggled by `[data-view]`:
 ## Bridge contract (optional)
 
 `node server.mjs [--host 127.0.0.1] [--port 8787] [--no-browser]`. Zero dependencies
-(`node:http` and friends). Loopback in both directions: the bind host must be loopback and
-`/api/*` is refused for non-loopback clients. Every response carries `nosniff`,
-`X-Frame-Options: DENY`, `Referrer-Policy: no-referrer`, `Cache-Control: no-store`.
+(`node:http` and friends). Every response carries `nosniff`, `X-Frame-Options: DENY`,
+`Referrer-Policy: no-referrer`, `Cache-Control: no-store`.
+
+**Three independent loopback checks**, because any one of them alone is bypassable:
+
+1. the bind host must be a loopback address (`serve()` refuses otherwise);
+2. the client socket's `remoteAddress` must be loopback;
+3. the request must *name* a loopback host — `Host` is required to be a loopback literal
+   and any `Origin`/`Referer` must be loopback too.
+
+(3) is what stops DNS rebinding: in that attack the browser really is on this machine, so
+(2) passes. The giveaway is the name the client used. It applies to every route, not just
+`/api/*` — serving the deck itself to a rebound origin would hand the attacker a
+same-origin page.
 
 | Route | Behaviour |
 | --- | --- |
@@ -209,19 +220,26 @@ Views (sidebar order), each a `.view` toggled by `[data-view]`:
 | `POST /api/analyze` | `{report, skill_md, files, model?, base_url?}` → `202 {job_id}`; `409` while one is running, `400` on a bad payload, `415` without a JSON content type |
 | `GET /api/jobs`, `GET /api/jobs/:id` | job status, progress, usage, result |
 | `GET /api/events?limit=` | ring buffer of pipeline events (max 400) |
-| `POST /api/chat` | `{question, report, history[], …}` → `{answer, usage, elapsed_ms}` |
+| `POST /api/chat` | `{question, report, history[], …}` → `{answer, truncated, usage, elapsed_ms}`; `409` while a review is running |
 
 Provider contract is identical to `book-buddy-2026/backends.py::OMLXBackend` and
 `contingency-atlas/llm.py::OMLXClient`:
 
 - `OMLX_BASE_URL` default `http://127.0.0.1:8000/v1`, `OMLX_API_KEY` default `test`,
-  `OMLX_MODEL` default `DeepSeek-V4-Flash-0731-MLX`, `OMLX_TIMEOUT` seconds, `OMLX_MAX_TOKENS`.
+  `OMLX_MODEL` default `DeepSeek-V4-Flash-0731-MLX`, `OMLX_TIMEOUT` seconds. `OMLX_MAX_TOKENS`,
+  when set, **overrides** the per-pass budgets — otherwise it would be documentation for a
+  value nothing reads, since every call site passes its own.
 - **Never streams** — OMLX hangs with `stream: true` on large models.
 - `reasoning_content` is read and reported but never mistaken for the answer.
 - HTTP envelopes are parsed **strictly**; only model *content* goes through the lenient
   JSON extractor. (A ```json fence inside a reply must not be able to pose as the envelope.)
-- A non-loopback LLM endpoint is refused — skill text is untrusted third-party content and
-  must not leave the machine — unless `SKILLSPECTOR_ALLOW_REMOTE_LLM=1` is set explicitly.
+- Every request has a hard deadline covering the whole exchange, not just socket
+  inactivity: a peer that dies mid-body must not leave the single-writer lock held forever.
+- A reply that stops on `length` is a budget failure, not a formatting one — the repair
+  round-trip gets 1.6× the budget, and both calls are billed.
+- The LLM endpoint hostname is **parsed**, never prefix-matched: `127.0.0.1.evil.tld` is
+  not loopback. A non-loopback endpoint is refused — skill text is untrusted third-party
+  content and must not leave the machine — unless `SKILLSPECTOR_ALLOW_REMOTE_LLM=1`.
 
 ### Analyst pipeline
 
@@ -233,9 +251,27 @@ purpose; do not merge a later pass into an earlier one.
 3. **Verdict** — `{recommendation: allow|caution|block, adjusted_grade: A–F, confidence, headline, rationale, actions[]}`.
 
 Every model reply is normalised into the shapes above; unknown enum values fall back
-(`needs_review`, `caution`, grade `C`) rather than propagating junk. Prompt framing states
-that bundle content is untrusted data and that an instruction inside it to change the
-verdict is itself evidence of injection. One job at a time.
+(`needs_review`, `caution`, grade `C`) rather than propagating junk, and a finding the model
+never ruled on says so at zero confidence rather than presenting as a considered verdict.
+
+**Findings have no natural key.** The engine can emit two findings that agree on rule, file,
+line *and* title. The UI therefore stamps a stable ordinal on every finding at scan time;
+that ordinal travels in the payload and comes back on each adjudication, so a verdict always
+returns to the finding it judged. Verdict rows are matched by the model's `n` first,
+positionally only when the list is full-length, and by rule id only when that identifies
+exactly one finding and one row.
+
+**Untrusted content cannot forge the fence.** The `----- BEGIN/END UNTRUSTED … -----`
+markers are the only thing telling the model where attacker-authored text stops, so every
+interpolation of bundle-authored text — SKILL.md, skill name, description, file list,
+evidence excerpts, the operator's question — has marker-shaped lines defanged before it goes
+in. The text is still shown; it just cannot pose as structure. Prompt framing states that
+bundle content is untrusted data and that an instruction inside it to change the verdict is
+itself evidence of injection.
+
+**One job at a time**, and chat obeys the same lock: the local model is a single-writer
+resource, so a question fired mid-review is refused (409) rather than allowed to compete
+with the running pass for the GPU.
 
 ## Build
 
@@ -262,19 +298,23 @@ stored + deflate), root detection (0, 1, n, nested), every SEC rule fires on the
 fixture, clean-skill scores ≥ 90 with zero critical/high, sloppy-skill triggers the expected
 QUA set, scoring math, cap-at-3 logic, invisible-unicode excerpt escaping.
 
-**`node tests/run-bridge-tests.mjs`** — bridge + analyst, 49 tests, driven by a fake OMLX
+**`node tests/run-bridge-tests.mjs`** — bridge + analyst, 76 tests, driven by a fake OMLX
 server so no model is needed. JSON extraction (fences, prose, braces inside strings, the
-strict-envelope regression), the loopback guard, the client against a live socket, the
-normalisers, the full three-pass pipeline, single-flight locking, error propagation, and
-every HTTP route including its status codes.
+strict-envelope regression), the parsed loopback guard and the forged-Host rejection on a
+raw socket, a connection dying mid-body, truncation-aware repair and its billing, the
+normalisers and verdict matching, fence forging, the full three-pass pipeline, single-flight
+locking across both analyze and chat, error propagation, and every HTTP route including its
+status codes.
 
-**`node tests/run-e2e.mjs`** — end to end in real Chrome, driven over CDP by
+**`node tests/run-e2e.mjs`** — 42 tests end to end in real Chrome, driven over CDP by
 `tests/cdp.mjs` (zero deps; Node 22's global `WebSocket` is the whole client). Boots its own
 bridge on a free port. Covers the boot sequence, all six views, the palette, scanning the
 demo skill, KPI/gauge/pill/roster rendering, search + severity filtering + sorting, the
 evidence modal, capability cards, the bundle manifest, multi-skill roster and switching,
 both Markdown exports and JSON, the analyst wiring and payload, console cleanliness,
-responsiveness at 390px, and offline (bridge-less) operation.
+responsiveness at 390px, cross-skill state handling (a review that lands after a root
+switch, duplicate-identity findings, nested roots), and a genuine `file://` load with no
+server at all.
 
 Add `--analyst` to run the review against the **real** local model end to end — verdict,
 triage, adjudications folded back into the register, history, export, and a chat round-trip.
