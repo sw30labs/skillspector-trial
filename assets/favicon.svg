@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40" fill="none">
+  <rect width="40" height="40" rx="8" fill="#04060c"/>
+  <path d="M20 3 L32.02 7.98 L37 20 L32.02 32.02 L20 37 L7.98 32.02 L3 20 L7.98 7.98 Z" stroke="#22d3ee" stroke-width="1.5" opacity="0.95"/>
+  <path d="M20 6.5 L29.55 10.45 L33.5 20 L29.55 29.55 L20 33.5 L10.45 29.55 L6.5 20 L10.45 10.45 Z" stroke="#5eead4" stroke-width="0.8" opacity="0.45"/>
+  <!-- inspection lens -->
+  <circle cx="17.5" cy="17.5" r="7.4" fill="rgba(94,234,212,0.07)" stroke="#5eead4" stroke-width="1.4"/>
+  <circle cx="17.5" cy="17.5" r="3.6" fill="none" stroke="#22d3ee" stroke-width="0.9" opacity="0.75"/>
+  <line x1="22.9" y1="22.9" x2="29.5" y2="29.5" stroke="#22d3ee" stroke-width="2.4" stroke-linecap="round"/>
+  <!-- scan line across the lens -->
+  <line x1="11.4" y1="17.5" x2="23.6" y2="17.5" stroke="#fbbf24" stroke-width="1.1" stroke-linecap="round" opacity="0.9"/>
+</svg>

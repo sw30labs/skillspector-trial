@@ -1,5 +1,9 @@
 #!/usr/bin/env node
-// Skillspector build — inlines src/* into a single index.html
+// Skillspector build — inlines src/* into a single self-contained index.html.
+//
+// The output has no external references at all (favicon included as a data
+// URI), so it runs straight off file://. The optional bridge (server.mjs)
+// serves this very same file.
 import { readFileSync, writeFileSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -16,10 +20,17 @@ function stripExports(js) {
     .replace(/^\s*export\s+(const|let|var|function|async\s+function|class)\s+/gm, "$1 ");
 }
 
+function faviconDataUri() {
+  const svg = read("assets/favicon.svg").trim();
+  return `data:image/svg+xml;base64,${Buffer.from(svg, "utf8").toString("base64")}`;
+}
+
 const template = read("src/template.html");
 const parts = {
+  "__FAVICON__": faviconDataUri(),
   "/*__CSS__*/": read("src/style.css"),
   "/*__ENGINE__*/": stripExports(read("src/engine.js")),
+  "/*__BRIDGE__*/": read("src/bridge.js"),
   "/*__UI__*/": read("src/ui.js"),
 };
 
@@ -36,6 +47,10 @@ for (const marker of Object.keys(parts)) {
     console.error(`build: marker ${marker} still present after substitution`);
     process.exit(1);
   }
+}
+if (/<script[^>]+\ssrc=|<link[^>]+href="(?!data:)/.test(out)) {
+  console.error("build: index.html references an external resource — it must be self-contained");
+  process.exit(1);
 }
 
 writeFileSync(resolve(root, "index.html"), out);
