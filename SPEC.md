@@ -2,26 +2,37 @@
 
 Single-file, offline, client-side web app. Users drop a Claude skill (folder, `.zip`, or `.skill`) and get a security + quality scan report. No frameworks, no CDN, no network calls — everything inline in the final `index.html`.
 
+An **optional** local bridge (`node server.mjs`) serves that same file and adds an AI Analyst backed by a local OMLX model. It is strictly additive: without it the deck behaves exactly as specified above, and the Analyst view reports the bridge as offline. The scan itself never leaves the browser under any configuration.
+
 ## Project layout
 
 ```
-Skill Scanner/
+skill-scanner/
   index.html          # BUILT artifact — single-file app (committed)
-  build.mjs           # inlines src/* into index.html
+  build.mjs           # inlines src/* + assets/favicon.svg into index.html
+  server.mjs          # OPTIONAL bridge: serves index.html + /api/*, loopback only
   SPEC.md             # this file
   README.md
+  assets/
+    favicon.svg       # atlas-style mark; inlined as a data: URI at build time
   src/
     engine.js         # scan engine (ES module; browser + node >= 18)
-    ui.js             # GUI logic (plain script, no module)
-    style.css         # styles
-    template.html     # shell with markers: /*__CSS__*/ /*__ENGINE__*/ /*__UI__*/
+    ui.js             # command deck controller (plain script, no module)
+    bridge.js         # browser-side client for the optional bridge
+    style.css         # command deck theme
+    template.html     # shell with markers (see Build)
+  server/
+    omlx.mjs          # OpenAI-compatible OMLX client (node stdlib only)
+    analyst.mjs       # three-pass review pipeline, jobs, event ring
   tests/
-    run-tests.mjs     # node test runner, zero deps (node:assert, node:test ok)
-    fixtures/         # skill bundles used by tests
+    run-tests.mjs         # engine suite — 74 tests, zero deps
+    run-bridge-tests.mjs  # bridge/analyst suite — 49 tests against a fake OMLX
+    run-e2e.mjs           # end-to-end: real Chrome over CDP, real bridge
+    cdp.mjs               # zero-dep Chrome DevTools Protocol driver
+    fixtures/             # skill bundles used by tests
       clean-skill/
       evil-skill/
       sloppy-skill/
-  samples/            # demo skills users can drop (zips built by tests or build)
 ```
 
 ## Engine API (hard contract — both agents code against this)
@@ -146,28 +157,126 @@ A legit skill (e.g. newsletter that sends mail via SMTP with env-var password) m
 out ~A/B with capabilities listed — NOT be buried in criticals. Rules must key on
 *exfil/injection shape*, not on "uses the network".
 
-## UI contract (GUI agent)
+## UI contract
 
 - Calls only: `await SkillScanner.scanFiles(entries)` and `await SkillScanner.parseZip(bytes)`. Never reimplements rules.
 - Input paths: (1) drag-drop of folder(s) — webkitGetAsEntry traversal; (2) drag-drop or file-picker of .zip/.skill — parseZip; (3) "Scan demo skill" button — embedded demo FileEntry[] (a small deliberately-sketchy skill defined as JS string constants in ui.js, so first-time users see a rich report instantly).
-- Multiple skills per drop → summary table (name, grade chip, score, criticals) with click-through to each report.
-- Report view: score ring gauge (animated), grade, severity pill counts, capabilities row (neutral chips w/ tooltip evidence), findings grouped by category, each expandable to show file, line, excerpt (monospace, escaped), rule id. Severity filter toggles. Buttons: "Export report (.md)" and "Export JSON" via Blob download. "Scan another" resets.
-- While scanning: brief scanner animation (sweep line over a file-list ticker). Keep under ~1.2s artificial minimum so it feels like it did work, but don't fake longer.
-- Design brief: product name "Skillspector". Dark theme default (deep navy/charcoal, neon-teal accent, amber/red for severities), light theme via prefers-color-scheme. Monospace accents (ui-monospace stack). Subtle CRT/scanline texture ok — tasteful, not noisy. `prefers-reduced-motion` honored. Fully keyboard-usable; drop zone also a button. Responsive ≥ 360px. No external fonts/assets — inline SVG only.
+- While scanning: sweep line over a file-path ticker, ~0.9s artificial minimum so it reads as work; never fake longer.
 - Everything must work from `file://` (no fetch of local resources, no modules in final build).
+
+### Command deck
+
+The GUI is a **command deck** in the same visual language as `contingency-atlas` and
+`book-buddy-2026`: boot sequence, ambient starfield canvas, mouse spotlight, film grain,
+sticky header with live badges and a clock, left sidebar nav, translucent panels over a
+near-black ground. Dark only — the reference decks have no light mode and neither does
+this one. Palette is shared verbatim (`--cyan #22d3ee`, `--teal #5eead4`, `--bg #04060c`,
+mono labels in wide tracking).
+
+Views (sidebar order), each a `.view` toggled by `[data-view]`:
+
+| View | Contents |
+| --- | --- |
+| `overview` — Situation Room | intake dropzone + scanner instrument, 6 KPI tiles, live line, grade gauge, severity pills, skill roster, activity log |
+| `findings` — Finding Register | search + severity filters, sortable table (severity/rule/title/location/verdict), row → modal with detail, evidence and analyst adjudication; export buttons |
+| `capabilities` — Capability Surface | one card per detected capability with evidence chips; model-read behaviour panel once triaged |
+| `bundle` — Bundle Inventory | bundle KPIs, frontmatter fields, sortable skill-root roster, full file manifest with per-file rule-hit counts |
+| `analyst` — AI Analyst | bridge/OMLX status, model + base-url controls, three-pass stage track, verdict panel, adjudication table, chat, review history |
+| `about` | what it does, the analyst, stack, run commands, privacy, author |
+
+- Multiple skills per drop → the roster lists every root; clicking one makes it active
+  across every view. "Export all (.md)" surfaces only when the bundle holds ≥ 2 skills.
+- Exports: per-skill Markdown, all-skills Markdown, and JSON (`{scan, analyst?}`) via Blob
+  download. When a review has run, the Markdown carries the verdict and per-finding
+  adjudications.
+- Accessibility: `prefers-reduced-motion` honored (boot skipped, starfield frozen, ticker
+  slowed); drop zone is a keyboard-operable button; skip link; responsive to 360px with the
+  sidebar becoming a scrolling top bar. No external fonts or assets — inline SVG only.
+
+## Bridge contract (optional)
+
+`node server.mjs [--host 127.0.0.1] [--port 8787] [--no-browser]`. Zero dependencies
+(`node:http` and friends). Loopback in both directions: the bind host must be loopback and
+`/api/*` is refused for non-loopback clients. Every response carries `nosniff`,
+`X-Frame-Options: DENY`, `Referrer-Policy: no-referrer`, `Cache-Control: no-store`.
+
+| Route | Behaviour |
+| --- | --- |
+| `GET /`, `/index.html` | the built deck |
+| `GET /favicon.svg` | the mark |
+| `GET /api/health` | `{ok, engine, bridge, model, base_url, backend, busy, active_job_id}` |
+| `GET /api/backend?model=&base_url=` | probes OMLX → `{reachable, base_url, models[], detail?}` |
+| `POST /api/analyze` | `{report, skill_md, files, model?, base_url?}` → `202 {job_id}`; `409` while one is running, `400` on a bad payload, `415` without a JSON content type |
+| `GET /api/jobs`, `GET /api/jobs/:id` | job status, progress, usage, result |
+| `GET /api/events?limit=` | ring buffer of pipeline events (max 400) |
+| `POST /api/chat` | `{question, report, history[], …}` → `{answer, usage, elapsed_ms}` |
+
+Provider contract is identical to `book-buddy-2026/backends.py::OMLXBackend` and
+`contingency-atlas/llm.py::OMLXClient`:
+
+- `OMLX_BASE_URL` default `http://127.0.0.1:8000/v1`, `OMLX_API_KEY` default `test`,
+  `OMLX_MODEL` default `DeepSeek-V4-Flash-0731-MLX`, `OMLX_TIMEOUT` seconds, `OMLX_MAX_TOKENS`.
+- **Never streams** — OMLX hangs with `stream: true` on large models.
+- `reasoning_content` is read and reported but never mistaken for the answer.
+- HTTP envelopes are parsed **strictly**; only model *content* goes through the lenient
+  JSON extractor. (A ```json fence inside a reply must not be able to pose as the envelope.)
+- A non-loopback LLM endpoint is refused — skill text is untrusted third-party content and
+  must not leave the machine — unless `SKILLSPECTOR_ALLOW_REMOTE_LLM=1` is set explicitly.
+
+### Analyst pipeline
+
+Three passes, each its own LLM call with its own prompt. They are structurally separate on
+purpose; do not merge a later pass into an earlier one.
+
+1. **Triage** — reads SKILL.md as untrusted data → `{intent, behaviours[], undeclared[], semantic_risks[], injection_attempt, notes}`.
+2. **Adjudicate** — findings worst-first, capped at 24, in batches of 5 → per finding `confirmed | false_positive | needs_review` with confidence and a note. Dropped findings are reported, never silently truncated.
+3. **Verdict** — `{recommendation: allow|caution|block, adjusted_grade: A–F, confidence, headline, rationale, actions[]}`.
+
+Every model reply is normalised into the shapes above; unknown enum values fall back
+(`needs_review`, `caution`, grade `C`) rather than propagating junk. Prompt framing states
+that bundle content is untrusted data and that an instruction inside it to change the
+verdict is itself evidence of injection. One job at a time.
 
 ## Build
 
-`node build.mjs` → reads src/template.html, substitutes markers with file contents:
-`/*__CSS__*/` (inside a `<style>`), `/*__ENGINE__*/` then `/*__UI__*/` (inside ONE
-non-module `<script>`; engine's `export` statements must be build-stripped or engine
-written export-free using the globalThis attach + `export { … }` on one final line the
-build strips). Output: ./index.html. Build must fail loudly if any marker missing.
+`node build.mjs` → reads `src/template.html` and substitutes markers with file contents:
 
-## Tests (engine agent owns)
+| Marker | Source | Placement |
+| --- | --- | --- |
+| `__FAVICON__` | `assets/favicon.svg`, base64 `data:` URI | `<link rel="icon">` |
+| `/*__CSS__*/` | `src/style.css` | inside `<style>` |
+| `/*__ENGINE__*/` | `src/engine.js`, export statements stripped | its own non-module `<script>` |
+| `/*__BRIDGE__*/` | `src/bridge.js` | its own non-module `<script>` |
+| `/*__UI__*/` | `src/ui.js` | its own non-module `<script>` |
 
-`node tests/run-tests.mjs` (or node --test). Cover: zip round-trip (build a zip in-test
-programmatically — stored + deflate entries), root detection (0, 1, n, nested), every
-SEC rule fires on evil-skill fixture, clean-skill scores ≥ 90 with zero
-critical/high, sloppy-skill triggers expected QUA set, scoring math, cap-at-3 logic,
-invisible-unicode excerpt escaping. Exit non-zero on failure.
+Output: `./index.html`. The build fails loudly if a marker is missing, if a marker survives
+substitution, or if the result references any external resource (`src=` on a script, or a
+non-`data:` `href` on a link) — the artifact must stay self-contained.
+
+## Tests
+
+All three suites are zero-dependency and exit non-zero on failure.
+
+**`node tests/run-tests.mjs`** — engine, 74 tests. Zip round-trip (zips built in-test,
+stored + deflate), root detection (0, 1, n, nested), every SEC rule fires on the evil-skill
+fixture, clean-skill scores ≥ 90 with zero critical/high, sloppy-skill triggers the expected
+QUA set, scoring math, cap-at-3 logic, invisible-unicode excerpt escaping.
+
+**`node tests/run-bridge-tests.mjs`** — bridge + analyst, 49 tests, driven by a fake OMLX
+server so no model is needed. JSON extraction (fences, prose, braces inside strings, the
+strict-envelope regression), the loopback guard, the client against a live socket, the
+normalisers, the full three-pass pipeline, single-flight locking, error propagation, and
+every HTTP route including its status codes.
+
+**`node tests/run-e2e.mjs`** — end to end in real Chrome, driven over CDP by
+`tests/cdp.mjs` (zero deps; Node 22's global `WebSocket` is the whole client). Boots its own
+bridge on a free port. Covers the boot sequence, all six views, the palette, scanning the
+demo skill, KPI/gauge/pill/roster rendering, search + severity filtering + sorting, the
+evidence modal, capability cards, the bundle manifest, multi-skill roster and switching,
+both Markdown exports and JSON, the analyst wiring and payload, console cleanliness,
+responsiveness at 390px, and offline (bridge-less) operation.
+
+Add `--analyst` to run the review against the **real** local model end to end — verdict,
+triage, adjudications folded back into the register, history, export, and a chat round-trip.
+That path needs OMLX up and takes minutes. `--headful` to watch, `--shots <dir>` for
+screenshots.

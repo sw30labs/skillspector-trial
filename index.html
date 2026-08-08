@@ -45,6 +45,9 @@
 }
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
+/* .grid and .btn set display, which would otherwise outrank the UA's
+   [hidden] { display: none } and leave "hidden" panels on screen. */
+[hidden] { display: none !important; }
 html { scroll-behavior: smooth; }
 body {
   background: var(--bg); color: var(--txt); font-family: var(--sans);
@@ -173,7 +176,7 @@ main { flex: 1; padding: 28px 30px 60px; max-width: 1520px; }
   color: var(--dim); margin-bottom: 14px; display: flex; align-items: center; gap: 8px;
 }
 .panel-title::after { content: ""; flex: 1; height: 1px; background: var(--line); }
-.panel-title .tt-action { font-size: 9px; letter-spacing: 0.16em; color: var(--faint); cursor: pointer; background: none; border: 0; font-family: var(--mono); }
+.panel-title .tt-action { order: 3; margin-left: 10px; font-size: 9px; letter-spacing: 0.16em; color: var(--faint); cursor: pointer; background: none; border: 0; font-family: var(--mono); }
 .panel-title .tt-action:hover { color: var(--teal); }
 .grid { display: grid; gap: 16px; }
 .g-6 { grid-template-columns: repeat(6, 1fr); }
@@ -3265,6 +3268,8 @@ globalThis.SkillScanner = { scanFiles, parseZip, VERSION, RULES };
     renderLiveLine();
     var row = $("report-row");
     if (row) row.hidden = !state.active;
+    var all = $("exportAllBtn");
+    if (all) all.hidden = ((state.result && state.result.skills) || []).length < 2;
   }
 
   function renderBadges() {

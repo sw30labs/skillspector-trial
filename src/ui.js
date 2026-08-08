@@ -576,6 +576,8 @@
     renderLiveLine();
     var row = $("report-row");
     if (row) row.hidden = !state.active;
+    var all = $("exportAllBtn");
+    if (all) all.hidden = ((state.result && state.result.skills) || []).length < 2;
   }
 
   function renderBadges() {
