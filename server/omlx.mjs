@@ -311,7 +311,13 @@ export class OMLXClient {
 
   /**
    * Chat that must return JSON. One repair round-trip if the first reply is
-   * unparseable; throws LLMError if the repair also fails.
+   * unparseable.
+   *
+   * Reasoning models spend most of a budget thinking before they write a
+   * single character of answer, so an unparseable reply that stopped on
+   * ``length`` is a budget failure, not a formatting failure. Retrying it with
+   * the same ceiling just burns another minute reaching the same wall — the
+   * repair gets a bigger budget and is told to think less.
    */
   async chatJson(messages, opts = {}) {
     const first = await this.chat(messages, opts);
@@ -319,20 +325,36 @@ export class OMLXClient {
     if (parsed !== null && typeof parsed === "object") {
       return { data: parsed, raw: first, repaired: false };
     }
+
+    const truncated = first.finishReason === "length";
+    const budget = opts.maxTokens || this.config.maxTokens;
     const repairMessages = [
       ...messages,
       { role: "assistant", content: first.content.slice(0, 2000) },
       {
         role: "user",
-        content:
-          "That was not valid JSON. Reply again with ONLY the JSON object — " +
-          "no prose, no markdown fences, no commentary.",
+        content: truncated
+          ? "That reply was cut off before the JSON was complete. Think briefly, " +
+            "then reply with ONLY the finished JSON object — no prose, no markdown fences."
+          : "That was not valid JSON. Reply again with ONLY the JSON object — " +
+            "no prose, no markdown fences, no commentary.",
       },
     ];
-    const second = await this.chat(repairMessages, { ...opts, temperature: 0 });
+    const second = await this.chat(repairMessages, {
+      ...opts,
+      temperature: 0,
+      maxTokens: truncated ? Math.ceil(budget * 1.6) : budget,
+    });
     const reparsed = extractJson(second.content);
     if (reparsed !== null && typeof reparsed === "object") {
-      return { data: reparsed, raw: second, repaired: true };
+      return { data: reparsed, raw: second, repaired: true, truncated };
+    }
+    if (truncated || second.finishReason === "length") {
+      throw new TruncatedError(
+        `model ran out of tokens before finishing its JSON (budget ${budget}); ` +
+          "raise OMLX_MAX_TOKENS",
+        { body: second.content.slice(0, 400) },
+      );
     }
     throw new LLMError("model did not return parseable JSON after one repair attempt", {
       body: second.content.slice(0, 400),

@@ -28,6 +28,12 @@ const ADJUDICATION_BATCH = 5;
 
 const SEV_ORDER = { critical: 0, high: 1, medium: 2, low: 3, info: 4 };
 
+// Reasoning models burn most of a budget on `reasoning_content` before the
+// answer starts, and the answer is what has to survive. Measured against
+// DeepSeek-V4-Flash: a 5-finding adjudication spends ~800 tokens thinking, so
+// a 1100 ceiling truncated the JSON and cost a full repair round-trip.
+const BUDGET = { triage: 1800, adjudicate: 2400, verdict: 1400, chat: 1600 };
+
 const _jobs = new Map();
 const _events = [];
 let _busy = false;
@@ -86,6 +92,12 @@ function emit(event) {
   return ev;
 }
 
+/** Make a repair visible in the event stream — it explains a slow pass. */
+function repairNote(res) {
+  if (!res || !res.repaired) return "";
+  return res.truncated ? " (retried, budget raised)" : " (retried)";
+}
+
 function clip(text, max) {
   const s = String(text ?? "");
   if (s.length <= max) return s;
@@ -106,6 +118,7 @@ const ANALYST_SYSTEM =
   "Judge the SHAPE of behaviour, not mere capability: a skill that sends mail " +
   "through SMTP with an env-var password is normal; a skill that reads " +
   "credentials and POSTs them to a webhook is an attack. Be concrete and terse. " +
+  "Think briefly — the answer matters, the deliberation does not. " +
   "Reply with a single JSON object and nothing else — no prose, no markdown fences.";
 
 function triagePrompt(ctx) {
@@ -143,6 +156,7 @@ function triagePrompt(ctx) {
 }
 
 function adjudicatePrompt(ctx, batch) {
+  const fm = ctx.report?.meta?.frontmatter || {};
   return [
     { role: "system", content: ANALYST_SYSTEM },
     {
@@ -157,6 +171,19 @@ function adjudicatePrompt(ctx, batch) {
         "                 (documentation warning against a command, an obvious",
         "                 placeholder secret, a legitimate declared capability)",
         "needs_review   = cannot tell from the evidence given",
+        "",
+        "Some rules (naming, description, file hygiene) carry no excerpt. Judge",
+        "those against the declared frontmatter and file list below. If evidence",
+        "is (none) and the context below does not settle it, answer needs_review —",
+        "never invent a fact about the skill to justify a verdict.",
+        "Write your own note; do not echo the placeholder text from the schema.",
+        "",
+        "CONTEXT FOR RULES WITH NO EXCERPT:",
+        `  declared name:        ${clip(fm.name ?? "(none)", 120)}`,
+        `  declared description: ${clip(fm.description ?? "(none)", 500)} `.trimEnd() +
+          ` [${String(fm.description ?? "").length} chars]`,
+        `  frontmatter keys:     ${Object.keys(fm).join(", ") || "(none)"}`,
+        `  files:                ${(ctx.files || []).slice(0, 60).join(", ") || "(unknown)"}`,
         "",
         "----- BEGIN UNTRUSTED FINDINGS -----",
         batch
@@ -362,14 +389,17 @@ async function runAnalysis(job, client, body) {
   // ---- PASS 1: triage -----------------------------------------------------
   setStage(job, "triage", "reading SKILL.md", 0);
   const t0 = Date.now();
-  const triageRes = await client.chatJson(triagePrompt(ctx), { maxTokens: 900, temperature: 0.2 });
+  const triageRes = await client.chatJson(triagePrompt(ctx), {
+    maxTokens: BUDGET.triage,
+    temperature: 0.2,
+  });
   recordUsage(job, triageRes.raw);
   ctx.triage = normalizeTriage(triageRes.data);
   emit({
     kind: "llm_call",
     job: job.id,
     stage: "triage",
-    note: `${Math.round((Date.now() - t0) / 1000)}s${triageRes.repaired ? " (repaired)" : ""}`,
+    note: `${Math.round((Date.now() - t0) / 1000)}s${repairNote(triageRes)}`,
     tokens: job.usage.total_tokens,
   });
   job.result = { triage: ctx.triage, adjudications: [], verdict: null, usage: job.usage };
@@ -388,7 +418,7 @@ async function runAnalysis(job, client, body) {
     setStage(job, "adjudicate", `batch ${b + 1}/${batches.length}`, 1);
     const started = Date.now();
     const res = await client.chatJson(adjudicatePrompt(ctx, batches[b]), {
-      maxTokens: 1100,
+      maxTokens: BUDGET.adjudicate,
       temperature: 0.1,
     });
     recordUsage(job, res.raw);
@@ -398,7 +428,7 @@ async function runAnalysis(job, client, body) {
       kind: "llm_call",
       job: job.id,
       stage: "adjudicate",
-      note: `batch ${b + 1}/${batches.length} · ${Math.round((Date.now() - started) / 1000)}s`,
+      note: `batch ${b + 1}/${batches.length} · ${Math.round((Date.now() - started) / 1000)}s${repairNote(res)}`,
       tokens: job.usage.total_tokens,
     });
   }
@@ -407,14 +437,17 @@ async function runAnalysis(job, client, body) {
   // ---- PASS 3: verdict ----------------------------------------------------
   setStage(job, "verdict", "weighing evidence", 2);
   const v0 = Date.now();
-  const verdictRes = await client.chatJson(verdictPrompt(ctx), { maxTokens: 700, temperature: 0.2 });
+  const verdictRes = await client.chatJson(verdictPrompt(ctx), {
+    maxTokens: BUDGET.verdict,
+    temperature: 0.2,
+  });
   recordUsage(job, verdictRes.raw);
   ctx.verdict = normalizeVerdict(verdictRes.data);
   emit({
     kind: "llm_call",
     job: job.id,
     stage: "verdict",
-    note: `${Math.round((Date.now() - v0) / 1000)}s`,
+    note: `${Math.round((Date.now() - v0) / 1000)}s${repairNote(verdictRes)}`,
     tokens: job.usage.total_tokens,
   });
 
@@ -476,15 +509,19 @@ export function mergeVerdicts(batch, data) {
       rows[i] ??
       {};
     const status = String(row.status || "").toLowerCase();
+    const known = VALID_STATUS.has(status);
+    const note = String(row.note || "").trim();
     return {
       ruleId: f.ruleId,
       severity: f.severity,
       title: f.title,
       file: f.file,
       line: f.line,
-      status: VALID_STATUS.has(status) ? status : "needs_review",
-      confidence: asNum(row.confidence, 0.5),
-      note: String(row.note || "").trim(),
+      status: known ? status : "needs_review",
+      confidence: known ? asNum(row.confidence, 0.5) : 0,
+      // A missing row means the model never ruled on this finding. Saying so is
+      // the honest answer; an empty note reads like a considered verdict.
+      note: note || (known ? "" : "the model returned no verdict for this finding"),
     };
   });
 }
@@ -520,7 +557,7 @@ export async function ask(body) {
   };
   emit({ kind: "chat", note: clip(body.question, 80) });
   const res = await client.chat(chatPrompt(ctx, body.question, body.history || []), {
-    maxTokens: 900,
+    maxTokens: BUDGET.chat,
     temperature: 0.3,
   });
   emit({ kind: "chat_reply", note: `${Math.round(res.elapsedMs / 1000)}s`, tokens: res.usage?.total_tokens || 0 });

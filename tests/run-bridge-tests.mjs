@@ -35,7 +35,7 @@ function section(title) {
 // ---------------------------------------------------------------------------
 // fake OMLX: OpenAI-compatible enough for the pipeline, scripted per call.
 // ---------------------------------------------------------------------------
-function startFakeOmlx(scripts, { failWith = null } = {}) {
+function startFakeOmlx(scripts, { failWith = null, finishReasons = null } = {}) {
   const calls = [];
   let i = 0;
   const server = http.createServer((req, res) => {
@@ -55,11 +55,12 @@ function startFakeOmlx(scripts, { failWith = null } = {}) {
       const body = JSON.parse(raw || "{}");
       calls.push(body);
       const content = typeof scripts[i] === "function" ? scripts[i](body) : scripts[i];
+      const finish = (finishReasons && finishReasons[i]) || "stop";
       i = Math.min(i + 1, scripts.length - 1);
       res.writeHead(200, { "Content-Type": "application/json" });
       res.end(
         JSON.stringify({
-          choices: [{ index: 0, message: { role: "assistant", content, reasoning_content: "thinking…" }, finish_reason: "stop" }],
+          choices: [{ index: 0, message: { role: "assistant", content, reasoning_content: "thinking…" }, finish_reason: finish }],
           usage: { prompt_tokens: 10, completion_tokens: 20, total_tokens: 30 },
         }),
       );
@@ -261,6 +262,41 @@ await test("a non-JSON HTTP body is reported, not silently salvaged", async () =
     await assert.rejects(() => client.chat([{ role: "user", content: "hi" }]), /non-JSON body/);
   } finally { server.close(); }
 });
+await test("a truncated JSON reply is retried with a bigger budget", async () => {
+  // A reasoning model that stops on `length` ran out of room to think, not out
+  // of ability to format. Retrying at the same ceiling just hits the same wall.
+  const fake = await startFakeOmlx(['{"partial": tru', '{"done":true}'], { finishReasons: ["length", "stop"] });
+  try {
+    const client = new omlx.OMLXClient({ baseUrl: fake.baseUrl });
+    const r = await client.chatJson([{ role: "user", content: "hi" }], { maxTokens: 1000 });
+    assert.deepStrictEqual(r.data, { done: true });
+    assert.strictEqual(r.repaired, true);
+    assert.strictEqual(r.truncated, true);
+    assert.strictEqual(fake.calls[0].max_tokens, 1000);
+    assert.strictEqual(fake.calls[1].max_tokens, 1600, "the repair must get more room");
+    assert.match(fake.calls[1].messages.at(-1).content, /cut off/);
+  } finally { fake.close(); }
+});
+await test("a merely malformed reply is retried at the same budget", async () => {
+  const fake = await startFakeOmlx(["not json", '{"done":true}'], { finishReasons: ["stop", "stop"] });
+  try {
+    const client = new omlx.OMLXClient({ baseUrl: fake.baseUrl });
+    const r = await client.chatJson([{ role: "user", content: "hi" }], { maxTokens: 1000 });
+    assert.strictEqual(r.truncated, false);
+    assert.strictEqual(fake.calls[1].max_tokens, 1000);
+    assert.match(fake.calls[1].messages.at(-1).content, /not valid JSON/);
+  } finally { fake.close(); }
+});
+await test("two truncations report the budget as the defect", async () => {
+  const fake = await startFakeOmlx(['{"a', '{"a'], { finishReasons: ["length", "length"] });
+  try {
+    const client = new omlx.OMLXClient({ baseUrl: fake.baseUrl });
+    await assert.rejects(
+      () => client.chatJson([{ role: "user", content: "hi" }], { maxTokens: 800 }),
+      (e) => e.kind === "truncated" && /OMLX_MAX_TOKENS/.test(e.message),
+    );
+  } finally { fake.close(); }
+});
 await test("a non-200 from OMLX becomes an LLMError", async () => {
   const fake = await startFakeOmlx(["{}"], { failWith: 500 });
   try {
@@ -308,6 +344,33 @@ await test("mergeVerdicts falls back to needs_review on a missing/garbled row", 
   const merged = analyst.mergeVerdicts(DEMO_REPORT.findings.slice(0, 2), { verdicts: [] });
   assert.deepStrictEqual(merged.map((m) => m.status), ["needs_review", "needs_review"]);
 });
+await test("an un-ruled finding says so instead of looking considered", () => {
+  const merged = analyst.mergeVerdicts(DEMO_REPORT.findings.slice(0, 1), { verdicts: [] });
+  assert.strictEqual(merged[0].confidence, 0, "no verdict means no confidence");
+  assert.match(merged[0].note, /no verdict/);
+});
+await test("a real verdict keeps its own note and confidence", () => {
+  const merged = analyst.mergeVerdicts(DEMO_REPORT.findings.slice(0, 1), {
+    verdicts: [{ n: 1, status: "false_positive", confidence: 0.8, note: "documented, not executed" }],
+  });
+  assert.strictEqual(merged[0].note, "documented, not executed");
+  assert.strictEqual(merged[0].confidence, 0.8);
+});
+await test("excerpt-less rules get frontmatter context to judge against", async () => {
+  analyst.resetForTests();
+  const fake = await startFakeOmlx([TRIAGE_JSON, ADJ_JSON, VERDICT_JSON]);
+  try {
+    const { jobId } = analyst.startAnalysis({
+      report: DEMO_REPORT, skill_md: "# demo", files: ["demo-skill/SKILL.md"], base_url: fake.baseUrl,
+    });
+    await waitForJob(jobId);
+    const adjPrompt = fake.calls[1].messages[1].content;
+    assert.match(adjPrompt, /declared description: .* \[\d+ chars\]/,
+      "the model must be told the real description length, not left to guess it");
+    assert.match(adjPrompt, /never invent a fact about the skill/);
+    assert.match(adjPrompt, /files: *demo-skill\/SKILL\.md/);
+  } finally { fake.close(); }
+});
 await test("selectFindings puts the worst first and caps the batch", () => {
   const many = Array.from({ length: 40 }, (_, i) => ({ ruleId: "R" + i, severity: i < 3 ? "critical" : "low" }));
   const { picked, dropped } = analyst.selectFindings(many);
@@ -331,6 +394,16 @@ await test("a full three-pass review lands a verdict", async () => {
     assert.strictEqual(job.result.triage.injection_attempt, true);
     assert.strictEqual(job.result.adjudications.length, 4);
     assert.ok(job.usage.calls >= 3, "expected at least one call per pass");
+  } finally { fake.close(); }
+});
+await test("each pass gets a budget sized for a model that thinks first", async () => {
+  analyst.resetForTests();
+  const fake = await startFakeOmlx([TRIAGE_JSON, ADJ_JSON, VERDICT_JSON]);
+  try {
+    const { jobId } = analyst.startAnalysis({ report: DEMO_REPORT, skill_md: "# demo", base_url: fake.baseUrl });
+    await waitForJob(jobId);
+    const budgets = fake.calls.map((c) => c.max_tokens);
+    assert.deepStrictEqual(budgets, [1800, 2400, 1400], "triage / adjudicate / verdict");
   } finally { fake.close(); }
 });
 await test("each pass is its own LLM call with its own prompt", async () => {
