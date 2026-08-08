@@ -19,8 +19,8 @@ Start the optional bridge and a **local model reviews the report with you** — 
 | | |
 | --- | --- |
 | ![Situation Room on standby, drop zone armed](docs/screenshots/01-standby.png) *Situation Room — scanner on standby* | ![Graded report after scanning a bundle](docs/screenshots/02-scanning.png) *Scan complete — gauge, KPIs, roster* |
-| ![Analyst verdict with adjusted grade and actions](docs/screenshots/03-report.png) *AI Analyst — verdict & adjudications* | ![Findings register with evidence modal open](docs/screenshots/04-findings.png) *Finding register with evidence* |
-| ![Bundle inventory with file manifest](docs/screenshots/05-summary.png) *Bundle inventory — roots & manifest* | |
+| ![Analyst verdict with adjusted grade and actions](docs/screenshots/03-report.png) *AI Analyst — verdict & adjudications* | ![Findings register with evidence modal open](docs/screenshots/04-findings.png) *Finding register — filter, sort, drill in* |
+| ![Bundle inventory with file manifest](docs/screenshots/05-summary.png) *Bundle inventory — roots & manifest* | ![Follow-up question answered by the local model](docs/screenshots/06-analyst.png) *Asking the analyst a follow-up* |
 
 ## Use it
 
@@ -30,7 +30,7 @@ Start the optional bridge and a **local model reviews the report with you** — 
 - use the folder / archive pickers, or
 - click **Scan demo skill** for a full report immediately.
 
-**With the AI Analyst.** Needs [OMLX](https://github.com/) serving on `127.0.0.1:8000` and Node ≥ 18:
+**With the AI Analyst.** Needs OMLX serving on `127.0.0.1:8000` and Node ≥ 18:
 
 ```bash
 node server.mjs           # → http://127.0.0.1:8787, opens your browser
@@ -73,7 +73,7 @@ Three passes over the report, each its own call with its own prompt:
 
 Adjudications fold back into the Findings register, and the Markdown export carries the whole verdict.
 
-Same provider contract as [contingency-atlas](https://github.com/) and [book-buddy-2026](https://github.com/): OMLX at `http://127.0.0.1:8000/v1`, model `DeepSeek-V4-Flash-0731-MLX`, non-streaming (OMLX hangs with streaming on large models), API key from `OMLX_API_KEY` (default `test`).
+Same provider contract as `contingency-atlas` and `book-buddy-2026`: OMLX at `http://127.0.0.1:8000/v1`, model `DeepSeek-V4-Flash-0731-MLX`, non-streaming (OMLX hangs with streaming on large models), API key from `OMLX_API_KEY` (default `test`).
 
 | Env var | Default |
 | --- | --- |

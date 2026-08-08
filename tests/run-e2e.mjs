@@ -76,6 +76,11 @@ async function resetFindingFilters() {
 const RULE_CELLS = '[...document.querySelectorAll("#find-tbody tr td:nth-child(2)")].map(t => t.textContent)';
 
 async function shot(name) {
+  // Let transitions settle and clear any toast still on screen — otherwise a
+  // shot lands mid-fade (a washed-out modal) or with an export notice sitting
+  // over the table.
+  await page.eval('(() => { const t = document.getElementById("toast"); if (t) t.classList.remove("show"); })()');
+  await new Promise((r) => setTimeout(r, 450));
   const p = join(SHOT_DIR, name);
   await page.screenshot(p);
   return p;
@@ -230,12 +235,12 @@ try {
 
   await test("clicking a finding opens the evidence modal", async () => {
     await resetFindingFilters();
+    await shot("04-findings.png");   // the register itself; the modal blurs it out
     await page.click("#find-tbody tr");
     assert.ok(await page.eval('document.getElementById("modal-overlay").classList.contains("open")'));
     const body = await page.eval('document.getElementById("modal-body").textContent');
     assert.match(body, /Why it matters/);
     assert.match(body, /Evidence/);
-    await shot("04-findings.png");
     await page.click("#modal-close");
     assert.ok(!(await page.eval('document.getElementById("modal-overlay").classList.contains("open")')));
   });

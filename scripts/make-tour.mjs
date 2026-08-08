@@ -102,7 +102,7 @@ try {
     // not become a 2000-frame GIF.
     await waitFor(async () => {
       await grab();
-      await pause(4000);
+      await pause(12000);   // one frame per 12s: a 7-minute review is ~35 frames
       return page.eval('globalThis.__skillspectorDeck.state.analysis ? 1 : null').catch(() => null);
     }, 900_000, "the live review");
     await grab(12);
