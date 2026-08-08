@@ -48,7 +48,7 @@ for (const marker of Object.keys(parts)) {
     process.exit(1);
   }
 }
-if (/<script[^>]+\ssrc=|<link[^>]+href="(?!data:)/.test(out)) {
+if (/<script\b[^>]*\ssrc\s*=|<link\b[^>]*\shref\s*=\s*"(?!data:)/i.test(out)) {
   console.error("build: index.html references an external resource — it must be self-contained");
   process.exit(1);
 }

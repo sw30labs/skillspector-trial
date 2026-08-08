@@ -283,6 +283,17 @@ try {
 
   // Built here, not inside the page expression: escaping a multi-line document
   // through a template literal into Runtime.evaluate is a trap worth avoiding.
+  const OUTER_SKILL_MD = [
+    "---", "name: outer-skill",
+    "description: An outer skill. Use when the user asks for the outer thing.",
+    "---", "", "# Outer", "",
+  ].join("\n");
+  const INNER_SKILL_MD = [
+    "---", "name: inner-skill",
+    "description: An inner skill. Use when the user asks for the inner thing.",
+    "---", "", "# Inner", "",
+  ].join("\n");
+
   const CLEAN_SKILL_MD = [
     "---",
     "name: tidy-notes",
@@ -577,6 +588,216 @@ try {
     section("analyst — live OMLX review");
     console.log("  – skipped (pass --analyst to run it)");
   }
+
+  // =========================================================================
+  section("deck — analyst state handling");
+  // =========================================================================
+  await test("two findings sharing a rule, file and line keep separate verdicts", async () => {
+    // The engine emits several QUA-003 variants against SKILL.md:1. Keying the
+    // adjudication index by rule|file|line alone let one overwrite the other.
+    await page.click('.nav-btn[data-view="findings"]');
+    await resetFindingFilters();
+    const dupes = JSON.parse(await page.eval(`(() => {
+      const fs = globalThis.__skillspectorDeck.state.active.findings;
+      const byKey = {};
+      for (const f of fs) {
+        const k = f.ruleId + "|" + f.file + "|" + f.line;
+        (byKey[k] = byKey[k] || []).push(f);
+      }
+      const group = Object.values(byKey).find(g => g.length > 1) || [];
+      return JSON.stringify(group.map(f => ({ ord: f.ord, ruleId: f.ruleId, severity: f.severity, title: f.title, file: f.file, line: f.line })));
+    })()`));
+    assert.ok(dupes.length > 1, "the demo skill must contain a same-rule/file/line pair to test with");
+    assert.notStrictEqual(dupes[0].ord, dupes[1].ord, "each finding must carry its own ordinal");
+
+    await page.eval(`(() => {
+      const g = ${JSON.stringify(dupes)};
+      globalThis.__skillspectorDeck.applyAnalysis({
+        triage: null,
+        verdict: { recommendation: "block", adjusted_grade: "F", confidence: 1, headline: "h", rationale: "r", actions: [] },
+        adjudications: g.map((f, i) => ({ ...f, status: i === 0 ? "confirmed" : "false_positive",
+                                          confidence: 0.9, note: "verdict for #" + (i + 1) })),
+        usage: { total_tokens: 1, calls: 1 },
+      });
+    })()`);
+
+    const notes = JSON.parse(await page.eval(`(() => {
+      const d = globalThis.__skillspectorDeck;
+      const g = ${JSON.stringify(dupes)};
+      return JSON.stringify(g.map(f => d.state.adjIndex[d.adjKey(f)] || null));
+    })()`));
+    assert.strictEqual(notes.length, dupes.length);
+    assert.strictEqual(notes[0].status, "confirmed");
+    assert.strictEqual(notes[1].status, "false_positive");
+    assert.notStrictEqual(notes[0].note, notes[1].note);
+
+    const statuses = await page.eval(
+      '[...document.querySelectorAll("#find-tbody tr td:last-child")].map(t => t.textContent.trim())');
+    assert.ok(statuses.includes("confirmed"), statuses.join(","));
+    assert.ok(statuses.includes("false positive"), statuses.join(","));
+  });
+
+  await test("a triage-only result does not print 'analyst says undefined'", async () => {
+    await page.eval(`(() => {
+      globalThis.__skillspectorDeck.applyAnalysis({
+        triage: { intent: "half-finished", behaviours: [], undeclared: [], semantic_risks: [], injection_attempt: false, notes: "" },
+        adjudications: [], verdict: null, usage: {},
+      });
+    })()`);
+    await page.click('.nav-btn[data-view="overview"]');
+    const line = await page.eval('document.getElementById("live-line").textContent');
+    assert.ok(!/undefined/.test(line), line);
+    // …and the model-read panel still surfaces what the first pass produced.
+    await page.click('.nav-btn[data-view="capabilities"]');
+    assert.strictEqual(await page.eval('getComputedStyle(document.getElementById("triage-panel")).display') === "none", false);
+    assert.match(await page.eval('document.getElementById("triage-body").textContent'), /half-finished/);
+  });
+
+  await test("a review that finishes after a root switch is not shown as the new skill's", async () => {
+    // Reproduces the cross-skill bleed: start a review on skill A, switch to B
+    // while it runs, and the poller must not paint A's verdict onto B.
+    await page.eval(`(() => {
+      const enc = new TextEncoder();
+      const d = globalThis.__skillspectorDeck;
+      d.state.result = null;
+      d.runScan([
+        ...d.buildDemoEntries(),
+        { path: "tidy-notes/SKILL.md", bytes: enc.encode(${JSON.stringify(CLEAN_SKILL_MD)}) },
+      ]);
+    })()`);
+    await page.waitForEval(
+      '(() => { const d = globalThis.__skillspectorDeck; return d.state.result && d.state.result.skills.length === 2 ? 1 : null; })()',
+      20000, "the multi-skill scan");
+
+    const outcome = JSON.parse(await page.eval(`(async () => {
+      const d = globalThis.__skillspectorDeck;
+      const demo = d.state.result.skills.find(s => /Demo_Helper|demo-skill/.test(s.name));
+      const tidy = d.state.result.skills.find(s => /tidy-notes/.test(s.name));
+      d.selectSkill(demo.rootPath);
+
+      const orig = window.fetch;
+      let finished = false;
+      const job = {
+        id: "an_test", status: "running", skill: "Demo_Helper",
+        progress: { stage: "triage", note: "x" }, usage: { total_tokens: 1 }, result: null,
+      };
+      window.fetch = (url, opts) => {
+        const u = String(url);
+        if (u.endsWith("/api/analyze")) return Promise.resolve(new Response(JSON.stringify({ job_id: "an_test" }), { status: 202 }));
+        if (u.includes("/api/jobs/")) {
+          const body = finished
+            ? { ...job, status: "done",
+                result: { verdict: { recommendation: "block", adjusted_grade: "F", confidence: 1, headline: "A's verdict", rationale: "r", actions: [] },
+                          triage: null, adjudications: [], usage: {}, skill: "Demo_Helper" } }
+            : job;
+          return Promise.resolve(new Response(JSON.stringify(body), { status: 200 }));
+        }
+        if (u.includes("/api/events") || u.endsWith("/api/jobs")) {
+          return Promise.resolve(new Response(JSON.stringify({ events: [], jobs: [] }), { status: 200 }));
+        }
+        return orig(url, opts);
+      };
+
+      document.getElementById("runAnalysisBtn").click();
+      await new Promise(r => setTimeout(r, 400));
+      const startedOn = d.state.jobRoot;
+      d.selectSkill(tidy.rootPath);          // user switches mid-review
+      finished = true;
+      await new Promise(r => setTimeout(r, 2600));   // let the poller land it
+      window.fetch = orig;
+      return JSON.stringify({
+        startedOn, activeNow: d.state.active.name,
+        analysis: d.state.analysis ? d.state.analysis.verdict.headline : null,
+        jobId: d.state.jobId,
+      });
+    })()`));
+    assert.match(outcome.startedOn, /demo-skill/);
+    assert.match(outcome.activeNow, /tidy-notes/);
+    assert.strictEqual(outcome.analysis, null, "skill A's verdict must not be shown as skill B's");
+    assert.strictEqual(outcome.jobId, null, "the poller should have stopped");
+  });
+
+  await test("nested skill roots do not steal each other's files", async () => {
+    const counts = JSON.parse(await page.eval(`(async () => {
+      const enc = new TextEncoder();
+      const d = globalThis.__skillspectorDeck;
+      d.state.result = null;
+      d.runScan([
+        { path: "outer/SKILL.md", bytes: enc.encode(${JSON.stringify(OUTER_SKILL_MD)}) },
+        { path: "outer/notes.md", bytes: enc.encode("# outer notes") },
+        { path: "outer/inner/SKILL.md", bytes: enc.encode(${JSON.stringify(INNER_SKILL_MD)}) },
+        { path: "outer/inner/helper.md", bytes: enc.encode("# inner helper") },
+      ]);
+      for (let i = 0; i < 100 && !d.state.result; i++) await new Promise(r => setTimeout(r, 100));
+      return JSON.stringify(d.state.result.skills.map(s => ({
+        root: s.rootPath, files: d.entriesForSkill(s).map(e => e.path).sort(),
+      })));
+    })()`));
+    assert.strictEqual(counts.length, 2, JSON.stringify(counts));
+    const outer = counts.find((c) => c.root === "outer/");
+    const inner = counts.find((c) => c.root === "outer/inner/");
+    assert.ok(outer && inner, JSON.stringify(counts));
+    assert.deepStrictEqual(outer.files, ["outer/SKILL.md", "outer/notes.md"],
+      "the outer root must not claim the nested skill's files");
+    assert.deepStrictEqual(inner.files, ["outer/inner/SKILL.md", "outer/inner/helper.md"].sort());
+  });
+
+  await test("clearing the activity log does not refill from the bridge replay", async () => {
+    const after = await page.eval(`(async () => {
+      const d = globalThis.__skillspectorDeck;
+      const before = d.state.log.length;
+      document.getElementById("clearEvents").click();
+      // The bridge replays its whole ring on every poll; the dedupe set has to
+      // survive the clear or those events walk straight back in.
+      const replay = { at: new Date().toISOString(), kind: "stage", note: "replayed" };
+      d.state.log.push(replay);
+      const key = replay.at + "|stage|replayed";
+      d.state.logSeen[key] = 1;
+      d.state.log.length = 0;
+      return d.state.log.length + "/" + (d.state.logSeen[key] ? "kept" : "lost") + "/" + before;
+    })()`);
+    assert.match(after, /kept/, "the dedupe set must survive CLEAR");
+    assert.strictEqual(await page.eval('document.getElementById("event-log").textContent').then((t) => /NO ACTIVITY|replayed/.test(t)), true);
+  });
+
+  await test("the ASK button is dead while a review holds the model", async () => {
+    // The local model is single-writer: a question fired mid-review competes
+    // with it for the GPU and can push the running pass past its timeout.
+    const r = JSON.parse(await page.eval(`(() => {
+      const d = globalThis.__skillspectorDeck;
+      const btn = document.getElementById("chatBtn");
+      const run = document.getElementById("runAnalysisBtn");
+      const saved = d.state.jobId;
+      d.state.bridgeOnline = true;
+
+      d.state.jobId = null;
+      d.updateAnalystControls();
+      const idle = { chat: btn.disabled, run: run.disabled, label: run.textContent };
+
+      d.state.jobId = "an_busy";
+      d.updateAnalystControls();
+      const busy = { chat: btn.disabled, run: run.disabled, label: run.textContent };
+
+      d.state.jobId = saved;
+      d.updateAnalystControls();
+      return JSON.stringify({ idle, busy });
+    })()`));
+    assert.strictEqual(r.idle.chat, false, "ASK is live when nothing is running");
+    assert.strictEqual(r.idle.run, false);
+    assert.strictEqual(r.busy.chat, true, "ASK must be disabled while a review runs");
+    assert.strictEqual(r.busy.run, true, "and so must RUN");
+    assert.match(r.busy.label, /REVIEWING/);
+  });
+
+  await test("rescanning the demo skill leaves the deck in a clean single-skill state", async () => {
+    await page.click('.nav-btn[data-view="overview"]');
+    await page.click("#demoBtn");
+    await page.waitForEval(
+      '(() => { const d = globalThis.__skillspectorDeck; return d.state.result && d.state.result.skills.length === 1 ? 1 : null; })()',
+      20000, "the rescan");
+    assert.strictEqual(await page.eval("globalThis.__skillspectorDeck.state.analysis"), null);
+    assert.strictEqual(await page.eval("globalThis.__skillspectorDeck.state.jobId"), null);
+  });
 
   // =========================================================================
   section("deck — hygiene");

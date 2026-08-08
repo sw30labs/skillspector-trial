@@ -41,13 +41,38 @@ export class TruncatedError extends LLMError {
   }
 }
 
-const LOOPBACK_HOSTS = new Set(["127.0.0.1", "::1", "localhost", "0:0:0:0:0:0:0:1"]);
+const LOOPBACK_NAMES = new Set(["localhost"]);
+
+/**
+ * True only for a genuine loopback address.
+ *
+ * Parsed, never prefix-matched: `/^127\./` would accept the hostname
+ * `127.0.0.1.evil.tld`, which any wildcard-DNS service hands out for free —
+ * and this guard is the only thing keeping untrusted skill text on the machine.
+ */
+export function isLoopbackHostname(host) {
+  if (!host) return false;
+  const h = String(host).replace(/^\[|\]$/g, "").toLowerCase();
+  if (LOOPBACK_NAMES.has(h)) return true;
+
+  // IPv4: exactly four numeric octets, first === 127.
+  const v4 = h.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
+  if (v4) {
+    const parts = v4.slice(1).map(Number);
+    if (parts.some((n) => n > 255)) return false;
+    return parts[0] === 127;
+  }
+
+  // IPv6 loopback, in its own right or IPv4-mapped.
+  if (h === "::1" || h === "0:0:0:0:0:0:0:1") return true;
+  const mapped = h.match(/^::ffff:(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})$/);
+  if (mapped) return isLoopbackHostname(mapped[1]);
+  return false;
+}
 
 export function isLoopback(baseUrl) {
   try {
-    const host = new URL(baseUrl).hostname.replace(/^\[|\]$/g, "");
-    if (LOOPBACK_HOSTS.has(host)) return true;
-    return /^127\./.test(host);
+    return isLoopbackHostname(new URL(baseUrl).hostname);
   } catch {
     return false;
   }
@@ -74,16 +99,27 @@ function envNum(name, fallback) {
   return Number.isFinite(n) && n > 0 ? n : fallback;
 }
 
+/** The budget actually used: an operator-pinned ceiling wins over the caller. */
+function budgetFor(config, requested) {
+  if (config.maxTokensPinned) return config.maxTokens;
+  return requested || config.maxTokens;
+}
+
 export function resolveConfig(overrides = {}) {
   const baseUrl = String(
     overrides.baseUrl || process.env.OMLX_BASE_URL || DEFAULT_BASE_URL,
   ).replace(/\/+$/, "");
+  // Callers pass a per-pass budget, so config.maxTokens would never be
+  // consulted and OMLX_MAX_TOKENS would be documentation for nothing. An
+  // explicitly set env var is an operator decision and overrides the caller.
+  const envMax = envNum("OMLX_MAX_TOKENS", null);
   return {
     baseUrl,
     apiKey: String(overrides.apiKey || process.env.OMLX_API_KEY || "test") || "test",
     model: String(overrides.model || process.env.OMLX_MODEL || DEFAULT_MODEL),
     timeoutMs: overrides.timeoutMs || envNum("OMLX_TIMEOUT", DEFAULT_TIMEOUT_MS / 1000) * 1000,
-    maxTokens: overrides.maxTokens || envNum("OMLX_MAX_TOKENS", DEFAULT_MAX_TOKENS),
+    maxTokens: overrides.maxTokens || envMax || DEFAULT_MAX_TOKENS,
+    maxTokensPinned: overrides.maxTokens != null || envMax != null,
     allowRemote: process.env.SKILLSPECTOR_ALLOW_REMOTE_LLM === "1",
   };
 }
@@ -99,6 +135,26 @@ function request(url, { method = "GET", headers = {}, body = null, timeoutMs }) 
     }
     const mod = u.protocol === "https:" ? https : http;
     const payload = body == null ? null : Buffer.from(body, "utf8");
+
+    let settled = false;
+    let deadline = null;
+    const settle = (fn) => (v) => {
+      if (settled) return;
+      settled = true;
+      if (deadline) clearTimeout(deadline);
+      fn(v);
+    };
+    const ok = settle(resolve);
+    const fail = settle(reject);
+    const netError = (what) => (err) =>
+      fail(
+        err instanceof LLMError
+          ? err
+          : new LLMError(`${what} ${u.host}: ${err?.message || "connection lost"}`, {
+              kind: "network",
+            }),
+      );
+
     const req = mod.request(
       {
         protocol: u.protocol,
@@ -114,11 +170,41 @@ function request(url, { method = "GET", headers = {}, body = null, timeoutMs }) 
       (res) => {
         const chunks = [];
         res.on("data", (c) => chunks.push(c));
-        res.on("end", () =>
-          resolve({ status: res.statusCode || 0, text: Buffer.concat(chunks).toString("utf8") }),
+        res.on("end", () => {
+          // A chunked response whose socket died mid-body ends without
+          // `complete`. Treating that as a successful read would hand a
+          // truncated envelope to the JSON parser as if it were the answer.
+          if (res.complete === false) {
+            fail(new LLMError(`response from ${u.host} ended mid-body`, { kind: "network" }));
+            return;
+          }
+          ok({ status: res.statusCode || 0, text: Buffer.concat(chunks).toString("utf8") });
+        });
+        res.on("error", netError("response from"));
+        res.on("aborted", () =>
+          fail(new LLMError(`response from ${u.host} was aborted mid-body`, { kind: "network" })),
         );
       },
     );
+
+    // A hard deadline on the whole exchange. `req.setTimeout` only arms a
+    // socket-inactivity timer, so a peer that accepts the request and then goes
+    // quiet forever would leave this promise pending — and with it the
+    // analyst's single-writer lock.
+    deadline = setTimeout(() => {
+      fail(
+        new LLMError(`request to ${u.host} timed out after ${Math.round(timeoutMs / 1000)}s`, {
+          kind: "timeout",
+        }),
+      );
+      try {
+        req.destroy();
+      } catch {
+        /* already gone */
+      }
+    }, timeoutMs);
+    if (typeof deadline.unref === "function") deadline.unref();
+
     req.setTimeout(timeoutMs, () => {
       req.destroy(
         new LLMError(`request to ${u.host} timed out after ${Math.round(timeoutMs / 1000)}s`, {
@@ -126,13 +212,7 @@ function request(url, { method = "GET", headers = {}, body = null, timeoutMs }) 
         }),
       );
     });
-    req.on("error", (err) =>
-      reject(
-        err instanceof LLMError
-          ? err
-          : new LLMError(`connection to ${u.host} failed: ${err.message}`, { kind: "network" }),
-      ),
-    );
+    req.on("error", netError("connection to"));
     if (payload) req.write(payload);
     req.end();
   });
@@ -205,6 +285,21 @@ function tryParse(s) {
   }
 }
 
+/** Sum two calls' usage so a repair round-trip is billed for what it cost. */
+export function mergeUsage(first, second) {
+  const add = (k) => Number(first.usage?.[k] || 0) + Number(second.usage?.[k] || 0);
+  return {
+    ...second,
+    usage: {
+      prompt_tokens: add("prompt_tokens") || add("input_tokens"),
+      completion_tokens: add("completion_tokens") || add("output_tokens"),
+      total_tokens: add("total_tokens"),
+    },
+    calls: 2,
+    elapsedMs: (first.elapsedMs || 0) + (second.elapsedMs || 0),
+  };
+}
+
 export class OMLXClient {
   constructor(overrides = {}) {
     this.config = resolveConfig(overrides);
@@ -257,7 +352,7 @@ export class OMLXClient {
    */
   async chat(messages, opts = {}) {
     const model = opts.model || this.config.model;
-    const maxTokens = opts.maxTokens || this.config.maxTokens;
+    const maxTokens = budgetFor(this.config, opts.maxTokens);
     const body = JSON.stringify({
       model,
       messages,
@@ -303,6 +398,11 @@ export class OMLXClient {
       content,
       reasoning,
       finishReason,
+      // The server said it stopped because it ran out of room. Prose callers
+      // must be able to tell their user the answer is cut off rather than
+      // present a half-sentence as complete.
+      truncated: finishReason === "length",
+      maxTokens,
       usage: data?.usage || {},
       elapsedMs: Date.now() - started,
       model,
@@ -327,7 +427,7 @@ export class OMLXClient {
     }
 
     const truncated = first.finishReason === "length";
-    const budget = opts.maxTokens || this.config.maxTokens;
+    const budget = budgetFor(this.config, opts.maxTokens);
     const repairMessages = [
       ...messages,
       { role: "assistant", content: first.content.slice(0, 2000) },
@@ -347,7 +447,9 @@ export class OMLXClient {
     });
     const reparsed = extractJson(second.content);
     if (reparsed !== null && typeof reparsed === "object") {
-      return { data: reparsed, raw: second, repaired: true, truncated };
+      // Two requests were made; reporting only the second understates cost
+      // exactly where it is highest.
+      return { data: reparsed, raw: mergeUsage(first, second), repaired: true, truncated };
     }
     if (truncated || second.finishReason === "length") {
       throw new TruncatedError(

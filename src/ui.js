@@ -28,6 +28,7 @@
   var SEV_ORDER = { critical: 0, high: 1, medium: 2, low: 3, info: 4 };
   var SEV_LABEL = { critical: "Critical", high: "High", medium: "Medium", low: "Low", info: "Info" };
   var MIN_SCAN_MS = 900;
+  var POLL_MISS_LIMIT = 5;   // ~7.5s of failed polls before giving up on a job
 
   var prefersReduced = false;
   try {
@@ -109,6 +110,8 @@
     analysis: null,
     adjIndex: Object.create(null),
     jobId: null,
+    jobRoot: null,   // the skill root the running review belongs to
+    pollMisses: 0,
     poll: null,
     chat: [],
     bridgeOnline: false,
@@ -502,6 +505,7 @@
   }
 
   function onScanComplete(result) {
+    stampOrdinals(result);
     state.result = result;
     state.active = (result.skills && result.skills[0]) || null;
     state.analysis = null;
@@ -541,8 +545,19 @@
   function entriesForSkill(skill) {
     if (!skill) return [];
     var root = skill.rootPath || "";
+    // The engine assigns each file to its DEEPEST matching root, so a plain
+    // prefix match would let an outer skill claim a nested skill's files in
+    // both the manifest and the analyst payload.
+    var roots = ((state.result && state.result.skills) || [])
+      .map(function (s2) { return s2.rootPath || ""; })
+      .filter(function (r) { return r !== ""; });
     return state.entries.filter(function (e) {
-      return root === "" ? true : e.path.indexOf(root) === 0;
+      if (root !== "" && e.path.indexOf(root) !== 0) return false;
+      var deepest = "";
+      for (var i = 0; i < roots.length; i++) {
+        if (e.path.indexOf(roots[i]) === 0 && roots[i].length > deepest.length) deepest = roots[i];
+      }
+      return deepest === root;
     });
   }
   function skillMdText(skill) {
@@ -559,7 +574,21 @@
     try { return new TextDecoder("utf-8", { fatal: false }).decode(hit.bytes); }
     catch (e) { return ""; }
   }
-  function adjKey(f) { return (f.ruleId || "") + "|" + (f.file || "") + "|" + (f.line == null ? "" : f.line); }
+  // Findings have no natural key: the engine can emit two that agree on rule,
+  // file, line AND title. Content-based keys therefore collapse them and one
+  // adjudication silently overwrites the other. Each finding gets a stable
+  // ordinal at scan time instead, and that ordinal makes the round trip to the
+  // model and back, so every verdict returns to exactly the finding it judged.
+  function stampOrdinals(result) {
+    (result.skills || []).forEach(function (sk) {
+      (sk.findings || []).forEach(function (f, i) { f.ord = i; });
+    });
+  }
+  function adjKey(f) {
+    return f && f.ord != null
+      ? "ord:" + f.ord
+      : [f.ruleId || "", f.file || "", f.line == null ? "" : f.line, f.title || ""].join("|");
+  }
 
   // =========================================================================
   //  rendering — situation room
@@ -623,7 +652,9 @@
       safeName(state.active) + " grade " + (state.active ? state.active.grade : "?") +
       " (" + numOr(state.active && state.active.score, 0) + "/100) · " +
       numOr(s.critical, 0) + " critical, " + numOr(s.high, 0) + " high" +
-      (state.analysis ? " · analyst says " + (state.analysis.verdict || {}).recommendation : "");
+      (state.analysis && state.analysis.verdict
+        ? " · analyst says " + state.analysis.verdict.recommendation
+        : "");
   }
 
   function renderKPIs() {
@@ -771,6 +802,7 @@
     state.analysis = null;
     state.adjIndex = Object.create(null);
     state.chat = [];
+    state.chatSeq = (state.chatSeq || 0) + 1;  // orphan any in-flight answer
     logEvent("select", safeName(found) + " · grade " + found.grade);
     renderAll();
     renderAnalysis();
@@ -1097,7 +1129,12 @@
       run.disabled = !ready;
       run.textContent = state.jobId ? "REVIEWING…" : "▶ RUN AI REVIEW";
     }
-    if (chat) chat.disabled = !(state.bridgeOnline && state.active);
+    // The model is a single-writer resource: a question fired mid-review
+    // competes with it and can push the running pass past its timeout.
+    if (chat) {
+      chat.disabled = !ready || !!state.chatBusy;
+      chat.title = state.jobId ? "Wait for the review to finish" : "";
+    }
   }
 
   function setBridgeBadge(online, detail) {
@@ -1170,8 +1207,9 @@
         summary: skill.summary,
         capabilities: skill.capabilities,
         meta: skill.meta,
-        findings: (skill.findings || []).map(function (f) {
+        findings: (skill.findings || []).map(function (f, i) {
           return {
+            ord: f.ord == null ? i : f.ord,
             ruleId: f.ruleId, severity: f.severity, category: f.category,
             title: f.title, detail: f.detail, file: f.file, line: f.line, excerpt: f.excerpt
           };
@@ -1190,8 +1228,11 @@
     state.adjIndex = Object.create(null);
     renderAnalysis();
     logEvent("analyst", "review requested · " + safeName(state.active));
+    var root = state.active.rootPath;
     SkillBridge.analyze(analystPayload()).then(function (res) {
       state.jobId = res.job_id;
+      state.jobRoot = root;
+      state.pollMisses = 0;
       updateAnalystControls();
       renderStages({ stage: "triage", note: "starting" }, "running");
       startPolling();
@@ -1223,11 +1264,15 @@
     }).catch(function () {});
 
     SkillBridge.job(state.jobId).then(function (job) {
+      state.pollMisses = 0;
       if (!job) return;
-      if (job.result) applyAnalysis(job.result);
-      renderStages(job.progress || {}, job.status);
+      // The user may have switched roots since this review started. Its result
+      // describes the skill it was requested for and nothing else.
+      var stillOurs = !state.active || state.active.rootPath === state.jobRoot;
+      if (job.result && stillOurs) applyAnalysis(job.result);
+      if (stillOurs) renderStages(job.progress || {}, job.status);
       var line = $("live-line");
-      if (line) {
+      if (line && stillOurs) {
         if (job.status === "running") {
           line.innerHTML = '<span class="spinner"></span> analyst · ' +
             esc((job.progress || {}).stage || "working") +
@@ -1237,12 +1282,16 @@
       }
       if (job.status !== "running") {
         state.jobId = null;
+        state.jobRoot = null;
         stopPolling();
         updateAnalystControls();
         pollJobs();
         if (job.status === "error") {
           toast("Review failed: " + (job.error || "unknown"));
           logEvent("analyst", job.error || "failed", true);
+        } else if (!stillOurs) {
+          toast("Review of " + (job.skill || "the other skill") + " finished — reselect it to see the verdict.");
+          logEvent("analyst", "finished for " + (job.skill || "another skill") + "; not shown (you switched roots)");
         } else {
           toast("Analyst verdict: " + ((job.result && job.result.verdict && job.result.verdict.recommendation) || "done"));
         }
@@ -1250,10 +1299,20 @@
         renderLiveLine();
       }
     }).catch(function (e) {
+      // A single failed poll is not proof the job is over — a timeout, a
+      // sleeping laptop or one dropped fetch would otherwise abandon a review
+      // that is still running on the bridge.
+      state.pollMisses = (state.pollMisses || 0) + 1;
+      if (state.pollMisses < POLL_MISS_LIMIT) {
+        logEvent("analyst", "poll failed (" + state.pollMisses + "/" + POLL_MISS_LIMIT + "), retrying");
+        return;
+      }
       state.jobId = null;
+      state.jobRoot = null;
       stopPolling();
       updateAnalystControls();
-      logEvent("analyst", e.message || String(e), true);
+      logEvent("analyst", "lost contact with the bridge: " + (e.message || String(e)), true);
+      toast("Lost contact with the bridge — the review may still be running.");
     });
   }
 
@@ -1387,29 +1446,47 @@
   function askAnalyst() {
     var input = $("chat-input"), btn = $("chatBtn");
     if (!input || !state.bridgeOnline || !state.active) return;
+    if (state.chatBusy || state.jobId) return;   // one question at a time; none during a review
     var q = input.value.trim();
     if (!q) return;
     input.value = "";
-    state.chat.push({ role: "user", content: q });
-    state.chat.push({ role: "assistant", content: "…thinking (local model, this can take a minute)" });
+    state.chatBusy = true;
+    // The answer must land on the turn that asked for it: a skill switch or a
+    // second question would otherwise overwrite whatever is last in the list.
+    var seq = state.chatSeq = (state.chatSeq || 0) + 1;
+    var placeholder = { role: "assistant", content: "…thinking (local model, this can take a minute)", seq: seq };
+    state.chat.push({ role: "user", content: q, seq: seq });
+    state.chat.push(placeholder);
     renderChat();
     if (btn) { btn.disabled = true; btn.textContent = "…"; }
-    var history = state.chat.slice(0, -2).filter(function (t) { return !t.error; });
+    var history = state.chat.slice(0, -2).filter(function (t) { return !t.error; })
+      .map(function (t) { return { role: t.role, content: t.content }; });
     var payload = analystPayload();
     payload.question = q;
     payload.history = history;
     payload.triage = state.analysis && state.analysis.triage;
     payload.verdict = state.analysis && state.analysis.verdict;
+
+    function settle(turn) {
+      if (seq !== state.chatSeq) return;          // the conversation moved on
+      var i = state.chat.indexOf(placeholder);
+      if (i === -1) return;                       // the log was replaced entirely
+      state.chat[i] = turn;
+    }
     SkillBridge.ask(payload).then(function (r) {
-      state.chat[state.chat.length - 1] = { role: "assistant", content: r.answer };
+      settle({
+        role: "assistant", seq: seq,
+        content: r.answer + (r.truncated ? "\n\n[the model ran out of tokens; this answer is cut off]" : ""),
+      });
       logEvent("chat", Math.round((r.elapsed_ms || 0) / 1000) + "s · " +
         ((r.usage && r.usage.total_tokens) || 0) + " tok");
     }).catch(function (e) {
-      state.chat[state.chat.length - 1] = { role: "assistant", content: "Failed: " + (e.message || e), error: true };
+      settle({ role: "assistant", seq: seq, content: "Failed: " + (e.message || e), error: true });
       logEvent("chat", e.message || String(e), true);
     }).finally(function () {
+      state.chatBusy = false;
       renderChat();
-      if (btn) { btn.disabled = false; btn.textContent = "ASK"; }
+      if (btn) btn.textContent = "ASK";
       updateAnalystControls();
     });
   }
@@ -1691,8 +1768,9 @@
     on($("exportJsonBtn"), "click", exportJson);
     on($("exportAllBtn"), "click", exportAllMarkdown);
     on($("clearEvents"), "click", function () {
+      // Keep logSeen: the bridge replays its last 120 events on every poll, so
+      // wiping the dedupe set would refill the log with what was just cleared.
       state.log = [];
-      state.logSeen = Object.create(null);
       renderLog();
     });
 
@@ -1727,6 +1805,11 @@
     state: state,
     runScan: runScan,
     buildDemoEntries: buildDemoEntries,
-    go: go
+    go: go,
+    applyAnalysis: applyAnalysis,
+    selectSkill: selectSkill,
+    entriesForSkill: entriesForSkill,
+    adjKey: adjKey,
+    updateAnalystControls: updateAnalystControls
   };
 })();

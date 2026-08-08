@@ -349,10 +349,12 @@
         <div class="panel">
           <div class="panel-title">Run it</div>
           <p class="mono-block">
-            open index.html          # offline, no server<br>
-            node server.mjs          # + AI analyst on :8787<br>
-            node build.mjs           # rebuild index.html<br>
-            node tests/run-tests.mjs # engine + bridge suite
+            open index.html                 # offline, no server<br>
+            node server.mjs                 # + AI analyst on :8787<br>
+            node build.mjs                  # rebuild index.html<br>
+            node tests/run-tests.mjs        # engine suite<br>
+            node tests/run-bridge-tests.mjs # bridge suite<br>
+            node tests/run-e2e.mjs          # deck in a real browser
           </p>
         </div>
         <div class="panel">

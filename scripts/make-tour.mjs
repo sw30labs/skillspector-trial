@@ -28,7 +28,7 @@ const OUT = (() => {
   return i !== -1 && argv[i + 1] ? resolve(argv[i + 1]) : resolve(ROOT, "docs/skillspector-tour.gif");
 })();
 
-const W = 1280, H = 800, FPS = 6;
+const W = 1280, H = 800, FPS = 6, GIF_WIDTH = 960;
 const frameDir = mkdtempSync(join(tmpdir(), "skillspector-tour-"));
 let frame = 0;
 
@@ -61,6 +61,10 @@ const pause = (ms) => new Promise((r) => setTimeout(r, ms));
 try {
   console.log("recording…");
   await page.waitForEval('document.getElementById("boot").classList.contains("done")', 15000, "boot");
+  // The drifting starfield changes every pixel of every frame, which defeats
+  // GIF inter-frame compression — a 2 MB tour for an otherwise static deck.
+  // The deck reads the same without it.
+  await page.eval('(() => { const c = document.getElementById("bg-canvas"); if (c) c.style.display = "none"; })()');
   await grab(8);                                            // standby
 
   await page.click("#demoBtn");                             // scan animation
@@ -107,7 +111,7 @@ try {
   mkdirSync(dirname(OUT), { recursive: true });
   const palette = join(frameDir, "palette.png");
   const input = join(frameDir, "f-%04d.png");
-  const scale = "scale=1000:-1:flags=lanczos";
+  const scale = `scale=${GIF_WIDTH}:-1:flags=lanczos`;
   execFileSync("ffmpeg", ["-y", "-loglevel", "error", "-framerate", String(FPS), "-i", input,
     "-vf", `${scale},palettegen=stats_mode=diff`, palette]);
   execFileSync("ffmpeg", ["-y", "-loglevel", "error", "-framerate", String(FPS), "-i", input, "-i", palette,

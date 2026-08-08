@@ -42,6 +42,36 @@ export function isLoopbackHost(host) {
   return /^::ffff:127\.\d+\.\d+\.\d+$/.test(h);
 }
 
+/**
+ * A loopback *socket* is not proof of a loopback *origin*.
+ *
+ * In a DNS-rebinding attack the browser really is on this machine, so
+ * `remoteAddress` is 127.0.0.1 — but the page came from the attacker's domain,
+ * which has re-resolved to loopback. What gives it away is the name the client
+ * used: the Host header says `evil.tld`, and any Origin says so too. Legitimate
+ * use of this bridge only ever names a loopback address.
+ */
+export function isTrustedNameHeaders(headers = {}) {
+  const hostHeader = String(headers.host || "");
+  if (!hostHeader) return false;
+  // Strip the port; keep bracketed IPv6 intact.
+  const hostname = hostHeader.startsWith("[")
+    ? hostHeader.slice(0, hostHeader.indexOf("]") + 1)
+    : hostHeader.split(":")[0];
+  if (!isLoopbackHost(hostname)) return false;
+
+  for (const key of ["origin", "referer"]) {
+    const raw = headers[key];
+    if (!raw || raw === "null") continue;
+    try {
+      if (!isLoopbackHost(new URL(raw).hostname)) return false;
+    } catch {
+      return false;
+    }
+  }
+  return true;
+}
+
 function version() {
   return readFile(resolve(ROOT, "src/engine.js"), "utf8")
     .then((s) => (s.match(/const VERSION\s*=\s*"([^"]+)"/) || [])[1] || "unknown")
@@ -98,8 +128,11 @@ function readBody(req) {
     req.on("data", (c) => {
       size += c.length;
       if (size > MAX_BODY_BYTES) {
+        // Reject first, then stop reading. Destroying the socket here would
+        // tear down the connection before the handler's catch could write the
+        // 413, so the client would see a dropped connection instead.
+        req.pause();
         fail(Object.assign(new Error("request body is too large"), { status: 413 }));
-        req.destroy();
         return;
       }
       chunks.push(c);
@@ -128,8 +161,16 @@ export function createHandler({ engineVersion = "unknown" } = {}) {
     const path = url.pathname;
     const local = isLoopbackHost(req.socket?.remoteAddress);
 
-    if (path.startsWith("/api/") && !local) {
+    if (!local) {
       sendJson(res, { error: "the Skillspector bridge is restricted to loopback" }, 403);
+      return;
+    }
+    if (!isTrustedNameHeaders(req.headers)) {
+      sendJson(
+        res,
+        { error: "request must name a loopback host and come from a loopback origin" },
+        403,
+      );
       return;
     }
 
@@ -199,7 +240,7 @@ export function createHandler({ engineVersion = "unknown" } = {}) {
           try {
             sendJson(res, await analyst.ask(body));
           } catch (e) {
-            sendJson(res, { error: e?.message || String(e) }, 502);
+            sendJson(res, { error: e?.message || String(e) }, Number(e?.status) || 502);
           }
           return;
         }

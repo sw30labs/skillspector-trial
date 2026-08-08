@@ -104,6 +104,17 @@ function clip(text, max) {
   return `${s.slice(0, max)}\n…[truncated ${s.length - max} chars]`;
 }
 
+// The fences below are the only thing telling the model where attacker-authored
+// text starts and stops. A bundle that simply writes the closing fence into its
+// own SKILL.md would appear to end the untrusted region and continue as trusted
+// instructions, so every marker-shaped line is defanged before interpolation.
+const FENCE_RE = /^[ \t]*-{3,}[ \t]*(BEGIN|END)\b.*$/gim;
+
+/** Clip untrusted text AND strip anything that could pose as a fence. */
+function untrusted(text, max) {
+  return clip(text, max).replace(FENCE_RE, (m) => `[neutralised marker] ${m.replace(/-/g, "·")}`);
+}
+
 // ---------------------------------------------------------------------------
 // prompts
 // ---------------------------------------------------------------------------
@@ -131,15 +142,15 @@ function triagePrompt(ctx) {
       content: [
         "PASS 1 — TRIAGE. Read the skill and describe what it really does.",
         "",
-        `SKILL NAME: ${ctx.report?.name || "(unknown)"}`,
-        `DECLARED DESCRIPTION: ${clip(fm.description || "(none)", 600)}`,
-        `FILES (${ctx.report?.meta?.fileCount ?? files.length}): ${files.join(", ") || "(none)"}`,
+        `SKILL NAME: ${untrusted(ctx.report?.name || "(unknown)", 200)}`,
+        `DECLARED DESCRIPTION: ${untrusted(fm.description || "(none)", 600)}`,
+        `FILES (${ctx.report?.meta?.fileCount ?? files.length}): ${untrusted(files.join(", ") || "(none)", 4000)}`,
         `RULE-ENGINE CAPABILITIES: ${
           (ctx.report?.capabilities || []).map((c) => c.label).join(", ") || "(none detected)"
         }`,
         "",
         "----- BEGIN UNTRUSTED SKILL.md -----",
-        clip(ctx.skillMd || "(SKILL.md missing or empty)", MAX_SKILLMD_CHARS),
+        untrusted(ctx.skillMd || "(SKILL.md missing or empty)", MAX_SKILLMD_CHARS),
         "----- END UNTRUSTED SKILL.md -----",
         "",
         "Return exactly this JSON shape:",
@@ -179,20 +190,20 @@ function adjudicatePrompt(ctx, batch) {
         "Write your own note; do not echo the placeholder text from the schema.",
         "",
         "CONTEXT FOR RULES WITH NO EXCERPT:",
-        `  declared name:        ${clip(fm.name ?? "(none)", 120)}`,
-        `  declared description: ${clip(fm.description ?? "(none)", 500)} `.trimEnd() +
+        `  declared name:        ${untrusted(fm.name ?? "(none)", 120)}`,
+        `  declared description: ${untrusted(fm.description ?? "(none)", 500)} `.trimEnd() +
           ` [${String(fm.description ?? "").length} chars]`,
-        `  frontmatter keys:     ${Object.keys(fm).join(", ") || "(none)"}`,
-        `  files:                ${(ctx.files || []).slice(0, 60).join(", ") || "(unknown)"}`,
+        `  frontmatter keys:     ${untrusted(Object.keys(fm).join(", ") || "(none)", 300)}`,
+        `  files:                ${untrusted((ctx.files || []).slice(0, 60).join(", ") || "(unknown)", 4000)}`,
         "",
         "----- BEGIN UNTRUSTED FINDINGS -----",
         batch
           .map((f, i) =>
             [
               `#${i + 1} ${f.ruleId} [${f.severity}] ${f.title}`,
-              `   file: ${f.file}${f.line ? `:${f.line}` : ""}`,
+              `   file: ${untrusted(f.file, 300)}${f.line ? `:${f.line}` : ""}`,
               `   detail: ${clip(f.detail, 300)}`,
-              `   evidence: ${clip(f.excerpt || "(none)", 300)}`,
+              `   evidence: ${untrusted(f.excerpt || "(none)", 300)}`,
             ].join("\n"),
           )
           .join("\n"),
@@ -217,7 +228,7 @@ function verdictPrompt(ctx) {
       content: [
         "PASS 3 — VERDICT. Decide whether a user should install this skill.",
         "",
-        `SKILL: ${ctx.report?.name || "(unknown)"}`,
+        `SKILL: ${untrusted(ctx.report?.name || "(unknown)", 200)}`,
         `RULE ENGINE: score ${ctx.report?.score ?? "?"}/100, grade ${ctx.report?.grade ?? "?"} (${counts})`,
         `TRIAGE INTENT: ${clip(ctx.triage?.intent || "(none)", 300)}`,
         `UNDECLARED BEHAVIOUR: ${clip((ctx.triage?.undeclared || []).join("; ") || "(none)", 400)}`,
@@ -255,18 +266,21 @@ export function chatPrompt(ctx, question, history = []) {
       role: "user",
       content: [
         "Context for the questions that follow.",
-        `SKILL: ${ctx.report?.name || "(unknown)"} — grade ${ctx.report?.grade ?? "?"} (${ctx.report?.score ?? "?"}/100)`,
+        `SKILL: ${untrusted(ctx.report?.name || "(unknown)", 200)} — grade ${ctx.report?.grade ?? "?"} (${ctx.report?.score ?? "?"}/100)`,
         `INTENT: ${clip(ctx.triage?.intent || "(not triaged)", 300)}`,
         `VERDICT: ${ctx.verdict?.recommendation || "(not reviewed)"} — ${clip(ctx.verdict?.rationale || "", 300)}`,
         "FINDINGS:",
         findings.length
-          ? findings
-              .map((f) => `- ${f.ruleId} [${f.severity}] ${f.title} @ ${f.file}${f.line ? ":" + f.line : ""}`)
-              .join("\n")
+          ? untrusted(
+              findings
+                .map((f) => `- ${f.ruleId} [${f.severity}] ${f.title} @ ${f.file}${f.line ? ":" + f.line : ""}`)
+                .join("\n"),
+              6000,
+            )
           : "(none)",
         "",
         "----- BEGIN UNTRUSTED SKILL.md -----",
-        clip(ctx.skillMd || "(missing)", 8000),
+        untrusted(ctx.skillMd || "(missing)", 8000),
         "----- END UNTRUSTED SKILL.md -----",
       ].join("\n"),
     },
@@ -276,7 +290,7 @@ export function chatPrompt(ctx, question, history = []) {
       messages.push({ role: turn.role === "assistant" ? "assistant" : "user", content: clip(turn.content, 1500) });
     }
   }
-  messages.push({ role: "user", content: clip(question, 2000) });
+  messages.push({ role: "user", content: untrusted(question, 2000) });
   return messages;
 }
 
@@ -501,17 +515,33 @@ export function normalizeTriage(data) {
 
 export function mergeVerdicts(batch, data) {
   const rows = asArray(data?.verdicts ?? data);
+  // A batch can legitimately hold several findings from the same rule (three
+  // QUA-003 variants fire on one SKILL.md line). Matching on ruleId before
+  // position would give all of them the first row's verdict, so ruleId is only
+  // consulted when it identifies exactly one finding and one row.
+  const ruleCounts = new Map();
+  for (const f of batch) {
+    const k = String(f.ruleId).toUpperCase();
+    ruleCounts.set(k, (ruleCounts.get(k) || 0) + 1);
+  }
+  // Position only means anything when the model returned one row per finding.
+  // Against a short list, rows[i] silently pairs finding #1 with whatever the
+  // model happened to rule on first.
+  const aligned = rows.length === batch.length;
   return batch.map((f, i) => {
-    // Prefer positional match (prompt asks for same order); fall back to ruleId.
+    const key = String(f.ruleId).toUpperCase();
+    const byRule = rows.filter((r) => String(r?.ruleId || "").toUpperCase() === key);
     const row =
       rows.find((r) => Number(r?.n) === i + 1) ??
-      rows.find((r) => String(r?.ruleId || "").toUpperCase() === String(f.ruleId).toUpperCase()) ??
-      rows[i] ??
+      (aligned ? rows[i] : undefined) ??
+      (ruleCounts.get(key) === 1 && byRule.length === 1 ? byRule[0] : undefined) ??
       {};
     const status = String(row.status || "").toLowerCase();
     const known = VALID_STATUS.has(status);
     const note = String(row.note || "").trim();
     return {
+      // The caller's stable identity for this finding — content is not unique.
+      ord: f.ord,
       ruleId: f.ruleId,
       severity: f.severity,
       title: f.title,
@@ -547,6 +577,14 @@ export function normalizeVerdict(data) {
 export async function ask(body) {
   if (!body || typeof body.question !== "string" || !body.question.trim()) {
     throw new LLMError("question is required", { kind: "config" });
+  }
+  // The local model is a single-writer resource: a question fired during a
+  // review competes with it for the GPU and can push the running pass past its
+  // timeout. Refuse rather than sabotage the analysis.
+  if (_busy) {
+    const err = new LLMError("a review is running — ask again when it finishes", { kind: "busy" });
+    err.status = 409;
+    throw err;
   }
   const client = _clientFactory({ model: body.model, baseUrl: body.base_url });
   const ctx = {
