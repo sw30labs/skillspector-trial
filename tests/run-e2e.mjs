@@ -281,25 +281,28 @@ try {
     assert.ok(Number(skillMd[3]) > 0, "SKILL.md should carry rule hits");
   });
 
+  // Built here, not inside the page expression: escaping a multi-line document
+  // through a template literal into Runtime.evaluate is a trap worth avoiding.
+  const CLEAN_SKILL_MD = [
+    "---",
+    "name: tidy-notes",
+    "description: Summarise meeting notes into action items. Use when the user shares raw notes.",
+    "---",
+    "",
+    "# Tidy Notes",
+    "",
+    "Read the notes the user provides and return a short list of action items.",
+    "Never run shell commands; this skill only reads text the user pastes in.",
+  ].join("\n");
+
   await test("a bundle with several skills lists every root", async () => {
     await page.eval(`(() => {
       const enc = new TextEncoder();
-      const mk = (p, t) => ({ path: p, bytes: enc.encode(t) });
-      const clean = [
-        "---",
-        "name: tidy-notes",
-        "description: Summarise meeting notes into action items. Use when the user shares raw notes.",
-        "---",
-        "",
-        "# Tidy Notes",
-        "",
-        "Read the notes the user provides and return a short list of action items.",
-        "Never run shell commands; this skill only reads text the user pastes in.",
-      ].join("\n");
-      globalThis.__skillspectorDeck.state.result = null;
-      globalThis.__skillspectorDeck.runScan([
-        ...globalThis.__skillspectorDeck.buildDemoEntries(),
-        mk("tidy-notes/SKILL.md", clean),
+      const d = globalThis.__skillspectorDeck;
+      d.state.result = null;
+      d.runScan([
+        ...d.buildDemoEntries(),
+        { path: "tidy-notes/SKILL.md", bytes: enc.encode(${JSON.stringify(CLEAN_SKILL_MD)}) },
       ]);
     })()`);
     await page.waitForEval(
